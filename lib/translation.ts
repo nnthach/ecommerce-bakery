@@ -630,6 +630,7 @@ export const translations = {
       headerBreadcrumb: {
         dashboard: "Dashboard",
         orders: "Orders",
+        reviews: "Reviews",
         staffs: "Staffs",
         storeInventories: "Store Inventory",
       },
@@ -1328,6 +1329,7 @@ export const translations = {
         dashboard: "Tổng quan",
         orders: "Đơn hàng",
         staffs: "Nhân viên",
+        reviews: "Đánh giá",
         storeInventories: "Tồn kho cửa hàng",
       },
       headerDropdown: {

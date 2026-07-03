@@ -27,7 +27,6 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Star,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -36,10 +35,8 @@ import { useI18n } from "@/context/I18nContext";
 
 const NAV_MANAGEMENT = [
   { key: "dashboard", href: "/staff/dashboard", icon: LayoutDashboard },
-  { key: "staffs", href: "/staff/staffs", icon: Users },
   { key: "orders", href: "/staff/orders", icon: ShoppingCart },
   { key: "reviews", href: "/staff/reviews", icon: Star },
-  { key: "customers", href: "/staff/customers", icon: Users },
   { key: "storeInventories", href: "/staff/store-inventories", icon: Boxes },
 ];
 

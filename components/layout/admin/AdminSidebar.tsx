@@ -28,7 +28,6 @@ import {
   FlaskConical,
   LayoutDashboard,
   Package,
-  Settings,
   ShoppingCart,
   Star,
   Store,
@@ -57,10 +56,6 @@ const NAV_PRODUCTS = [
   { key: "products", href: "/admin/products", icon: Package },
   { key: "categories", href: "/admin/categories", icon: Tag },
   { key: "ingredients", href: "/admin/ingredients", icon: FlaskConical },
-];
-
-const NAV_SETTINGS = [
-  { key: "settings", href: "/admin/settings", icon: Settings },
 ];
 
 function NavGroup({
@@ -167,15 +162,6 @@ export function AdminSidebar() {
         <NavGroup
           items={NAV_PRODUCTS}
           label={t("admin.sidebar.groups.products")}
-          pathname={pathname}
-          t={t}
-        />
-
-        <SidebarSeparator />
-
-        <NavGroup
-          items={NAV_SETTINGS}
-          label={t("admin.sidebar.groups.system")}
           pathname={pathname}
           t={t}
         />
