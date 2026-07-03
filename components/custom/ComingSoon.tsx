@@ -15,20 +15,20 @@ export default function ComingSoon() {
       title: "This Page Is Still Baking",
       description:
         "We're still preparing this page with the same care we put into our bread. Please check back soon.",
-      back: "Go Back",
+      back: "Return",
     },
     vi: {
       badge: "Sắp ra mắt",
       title: "Trang Này Đang Được Chuẩn Bị",
       description:
         "Chúng tôi vẫn đang hoàn thiện trang này với sự tỉ mỉ như từng ổ bánh. Vui lòng quay lại sau nhé.",
-      back: "Quay lại",
+      back: "Trở về",
     },
   }[locale];
 
   return (
     <section className="flex min-h-[80vh] items-center justify-center bg-sand px-6 py-24">
-      <div className="flex max-w-lg flex-col items-center text-center">
+      <div className="flex max-w-xl flex-col items-center text-center">
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-amber/10">
           <Croissant className="h-8 w-8 text-amber" strokeWidth={1.5} />
         </span>

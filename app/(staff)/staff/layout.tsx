@@ -1,3 +1,4 @@
+import { RolePermission } from "@/components/custom/RolePermission";
 import StaffLayoutClient from "@/components/layout/staff/StaffLayoutClient";
 
 export default function StaffLayout({
@@ -5,5 +6,9 @@ export default function StaffLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <StaffLayoutClient>{children}</StaffLayoutClient>;
+  return (
+    <RolePermission allowedRoles={["staff"]}>
+      <StaffLayoutClient>{children}</StaffLayoutClient>
+    </RolePermission>
+  );
 }

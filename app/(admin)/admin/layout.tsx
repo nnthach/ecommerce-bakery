@@ -1,3 +1,4 @@
+import { RolePermission } from "@/components/custom/RolePermission";
 import AdminLayoutClient from "@/components/layout/admin/AdminLayoutClient";
 
 export default function AdminLayout({
@@ -5,5 +6,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminLayoutClient>{children}</AdminLayoutClient>;
+  return (
+    <RolePermission allowedRoles={["admin"]}>
+      <AdminLayoutClient>{children}</AdminLayoutClient>
+    </RolePermission>
+  );
 }
