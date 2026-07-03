@@ -1,4 +1,8 @@
-import { isSupabaseConfigured, supabase, supabaseAdmin } from "@/lib/supabase";
+import {
+  createSupabaseServerClient,
+  isSupabaseConfigured,
+  supabaseAdmin,
+} from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -20,11 +24,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // step 2: sign in with supabase
+    // step 2: sign in with supabaseServerClient => create and save session
+    const res = new NextResponse(null);
+    // res là chỗ chứa cho createSupabaseServerClient
+    const supabase = createSupabaseServerClient(req, res);
+    // createSupabaseServerClient nhận res để biết
+    // "khi cần ghi cookie, ghi vào res.headers này"
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    // sau khi signInWithPassword thành công
+    // Supabase tự gọi setAll() trong createSupabaseServerClient
+    // → ghi session cookie vào res.headers
 
     if (error) {
       return NextResponse.json(
@@ -80,7 +92,6 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         data: {
-          session: data.session,
           user: {
             id: userProfile.id,
             full_name: userProfile.full_name,
@@ -90,7 +101,10 @@ export async function POST(req: NextRequest) {
           },
         },
       },
-      { status: 200 },
+      {
+        status: 200,
+        headers: res.headers, // bắt buộc để cookie được set
+      },
     );
   } catch (error) {
     console.error("Error signing in:", error);

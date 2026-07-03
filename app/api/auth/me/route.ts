@@ -7,14 +7,16 @@ export async function GET(req: NextRequest) {
   try {
     const supabaseServerClient = createSupabaseServerClient(req, res);
 
+    // lấy getAuth từ cookie
     const {
       data: { user: authUser },
+      error,
     } = await supabaseServerClient.auth.getUser();
 
-    if (!authUser) {
+    if (error || !authUser) {
       return NextResponse.json(
-        { success: false, error: "Not authenticated." },
-        { status: 401, headers: res.headers },
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 

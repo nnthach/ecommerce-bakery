@@ -25,11 +25,25 @@ export function createSupabaseServerClient(
   res: NextResponse,
 ) {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: {
+      httpOnly: true,
+      // secure: process.env.NODE_ENV === "production",
+      secure: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365, // 1 năm
+      path: "/",
+    },
     cookies: {
       getAll: () => req.cookies.getAll(),
       setAll: (cookiesToSet) => {
         cookiesToSet.forEach(({ name, value, options }) => {
-          res.cookies.set(name, value, options);
+          res.cookies.set(name, value, {
+            ...options,
+            httpOnly: true, // override với các giá trị bảo mật
+            secure: true,
+            sameSite: "lax",
+            path: "/",
+          });
         });
       },
     },

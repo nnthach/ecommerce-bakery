@@ -1,9 +1,9 @@
 "use client";
 
-import { supabaseBrowser } from "@/lib/supabase";
 import { UserItem } from "@/types";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import PageLoader from "@/components/custom/PageLoader";
 
 export interface AuthUser extends UserItem {
   staff?: {
@@ -23,54 +23,45 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUserState] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const setUser = (nextUser: AuthUser | null) => {
-    setUserState(nextUser);
-
-    if (nextUser) {
-      localStorage.setItem("auth_user", JSON.stringify(nextUser));
-    } else {
-      localStorage.removeItem("auth_user");
-    }
-  };
-
   useEffect(() => {
-    const stored = localStorage.getItem("auth_user");
-
-    if (stored) {
+    const initAuth = async () => {
       try {
-        setUserState(JSON.parse(stored));
-        setIsLoading(false);
-        return;
-      } catch {
-        localStorage.removeItem("auth_user");
-      }
-    }
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
 
-    // No cached user — check for an active Supabase session
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((result) => {
-        if (result?.success && result.data?.user) {
-          setUser(result.data.user);
+        if (data.success && data.data?.user) {
+          setUser(data.data.user);
+        } else {
+          setUser(null);
         }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
+      } catch {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const logout = async () => {
-    setUser(null);
-    await supabaseBrowser.auth.signOut();
-    router.push("/");
+    try {
+      await fetch("/api/auth/signout", { method: "POST" });
+    } catch {
+      console.log("logout err");
+    } finally {
+      setUser(null);
+      router.push("/");
+    }
   };
 
   return (
     <AuthContext.Provider value={{ user, isLoading, setUser, logout }}>
-      {children}
+      {isLoading ? <PageLoader /> : children}
     </AuthContext.Provider>
   );
 }

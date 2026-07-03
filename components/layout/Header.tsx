@@ -25,7 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import LanguageToggle from "../custom/LanguageToggle";
 
 function getInitials(fullName: string) {
-  const parts = fullName.trim().split(/\s+/);
+  const parts = fullName?.trim().split(/\s+/) || "";
   const initials = [parts[0], parts[parts.length - 1]]
     .filter(Boolean)
     .map((part) => part[0]?.toUpperCase());
@@ -43,6 +43,8 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const { t } = useI18n();
   const { user, logout } = useAuth();
+
+  console.log("user", user);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
