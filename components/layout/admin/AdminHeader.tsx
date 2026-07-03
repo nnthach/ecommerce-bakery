@@ -25,6 +25,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import LanguageToggle from "@/components/custom/LanguageToggle";
 import { useI18n } from "@/context/I18nContext";
+import { useAuth } from "@/context/AuthContext";
 
 const BREADCRUMB_MAP: Record<string, string> = {
   dashboard: "dashboard",
@@ -55,6 +56,7 @@ function useBreadcrumbs() {
 export function AdminHeader() {
   const crumbs = useBreadcrumbs();
   const { t } = useI18n();
+  const { logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background px-6 backdrop-blur-sm">
@@ -69,7 +71,7 @@ export function AdminHeader() {
           <BreadcrumbItem className="hidden md:block">
             <BreadcrumbLink asChild>
               <Link
-                href="/admin/dashboard"
+                href="/"
                 className="text-muted-foreground hover:text-foreground"
               >
                 Petit Bakery
@@ -146,11 +148,11 @@ export function AdminHeader() {
             <DropdownMenuItem className="cursor-pointer">
               {t("admin.headerDropdown.profile")}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              {t("admin.headerDropdown.accountSettings")}
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive focus:text-destructive cursor-pointer"
+            >
               {t("admin.headerDropdown.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>

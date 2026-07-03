@@ -8,6 +8,57 @@ export const translations = {
     },
     headerButton: {
       orderNow: "Order Now",
+      signin: "Sign In",
+    },
+    headerDropdown: {
+      dashboard: "Dashboard",
+      profile: "Profile",
+      signOut: "Sign Out",
+    },
+    // auth pages
+    authPage: {
+      signinPage: {
+        badge: "Welcome Back",
+        title: "Sign In to Your Account",
+        subtitle: "Enter your details to continue.",
+        emailLabel: "Email",
+        emailPlaceholder: "you@example.com",
+        passwordLabel: "Password",
+        passwordPlaceholder: "Enter your password",
+        submit: "Sign In",
+        noAccount: "Don't have an account?",
+        signUpLink: "Sign Up",
+        errors: {
+          emailRequired: "Email is required.",
+          passwordRequired: "Password is required.",
+          generic: "Something went wrong. Please try again.",
+        },
+      },
+      signupPage: {
+        badge: "Join Us",
+        title: "Create Your Account",
+        subtitle: "Enter your details to get started.",
+        fullNameLabel: "Full Name",
+        fullNamePlaceholder: "John Doe",
+        emailLabel: "Email",
+        emailPlaceholder: "you@example.com",
+        passwordLabel: "Password",
+        passwordPlaceholder: "At least 6 characters",
+        submit: "Sign Up",
+        haveAccount: "Already have an account?",
+        signInLink: "Sign In",
+        successTitle: "Check Your Email",
+        successMessage:
+          "We've sent a verification link to your email. Please verify your account before signing in.",
+        backToSignIn: "Back to Sign In",
+        errors: {
+          fullNameRequired: "Full name is required.",
+          emailRequired: "Email is required.",
+          passwordRequired: "Password is required.",
+          passwordTooShort: "Password must be at least 6 characters.",
+          generic: "Something went wrong. Please try again.",
+        },
+      },
     },
     // home page
     homePage: {
@@ -150,6 +201,7 @@ export const translations = {
       filter: "Filter",
       apply: "Apply",
       clearFilter: "Clear filter",
+      signin: "Sign In",
     },
 
     // footer
@@ -650,6 +702,57 @@ export const translations = {
     },
     headerButton: {
       orderNow: "Đặt hàng",
+      signin: "Đăng nhập",
+    },
+    headerDropdown: {
+      dashboard: "Trang quản lý",
+      profile: "Hồ sơ",
+      signOut: "Đăng xuất",
+    },
+    // auth pages
+    authPage: {
+      signinPage: {
+        badge: "Chào mừng trở lại",
+        title: "Đăng nhập tài khoản",
+        subtitle: "Nhập thông tin của bạn để tiếp tục.",
+        emailLabel: "Email",
+        emailPlaceholder: "email@vidu.com",
+        passwordLabel: "Mật khẩu",
+        passwordPlaceholder: "Nhập mật khẩu",
+        submit: "Đăng nhập",
+        noAccount: "Chưa có tài khoản?",
+        signUpLink: "Đăng ký",
+        errors: {
+          emailRequired: "Vui lòng nhập email.",
+          passwordRequired: "Vui lòng nhập mật khẩu.",
+          generic: "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        },
+      },
+      signupPage: {
+        badge: "Tham gia cùng chúng tôi",
+        title: "Tạo tài khoản mới",
+        subtitle: "Nhập thông tin của bạn để bắt đầu.",
+        fullNameLabel: "Họ và tên",
+        fullNamePlaceholder: "Nguyễn Văn A",
+        emailLabel: "Email",
+        emailPlaceholder: "email@vidu.com",
+        passwordLabel: "Mật khẩu",
+        passwordPlaceholder: "Ít nhất 6 ký tự",
+        submit: "Đăng ký",
+        haveAccount: "Đã có tài khoản?",
+        signInLink: "Đăng nhập",
+        successTitle: "Kiểm tra email của bạn",
+        successMessage:
+          "Chúng tôi đã gửi một liên kết xác thực đến email của bạn. Vui lòng xác thực tài khoản trước khi đăng nhập.",
+        backToSignIn: "Quay lại đăng nhập",
+        errors: {
+          fullNameRequired: "Vui lòng nhập họ và tên.",
+          emailRequired: "Vui lòng nhập email.",
+          passwordRequired: "Vui lòng nhập mật khẩu.",
+          passwordTooShort: "Mật khẩu phải có ít nhất 6 ký tự.",
+          generic: "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        },
+      },
     },
     // home page
     homePage: {
@@ -793,6 +896,7 @@ export const translations = {
       backToMenu: "Về thực đơn",
       filter: "Bộ lọc",
       apply: "Áp dụng",
+      signin: "Đăng nhập",
       clearFilter: "Xóa bộ lọc",
     },
 

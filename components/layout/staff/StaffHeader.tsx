@@ -25,6 +25,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import LanguageToggle from "@/components/custom/LanguageToggle";
 import { useI18n } from "@/context/I18nContext";
+import { useAuth } from "@/context/AuthContext";
 
 const BREADCRUMB_MAP: Record<string, string> = {
   dashboard: "dashboard",
@@ -48,6 +49,7 @@ function useBreadcrumbs() {
 export function StaffHeader() {
   const crumbs = useBreadcrumbs();
   const { t } = useI18n();
+  const { logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background px-6 backdrop-blur-sm">
@@ -139,11 +141,11 @@ export function StaffHeader() {
             <DropdownMenuItem className="cursor-pointer">
               {t("staff.headerDropdown.profile")}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              {t("staff.headerDropdown.accountSettings")}
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive focus:text-destructive cursor-pointer"
+            >
               {t("staff.headerDropdown.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>

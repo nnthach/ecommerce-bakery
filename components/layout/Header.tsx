@@ -11,8 +11,26 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useI18n } from "@/context/I18nContext";
+import { useAuth } from "@/context/AuthContext";
 import LanguageToggle from "../custom/LanguageToggle";
+
+function getInitials(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  const initials = [parts[0], parts[parts.length - 1]]
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase());
+  return initials.join("") || "U";
+}
 
 const NAV_LINKS = [
   { href: "/#story", label: "headerNav.ourStory" },
@@ -24,6 +42,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { t } = useI18n();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -31,6 +50,13 @@ export default function Header() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const dashboardHref =
+    user?.role === "admin"
+      ? "/admin/dashboard"
+      : user?.role === "staff"
+        ? "/staff/dashboard"
+        : null;
 
   return (
     <header
@@ -71,11 +97,57 @@ export default function Header() {
 
           <LanguageToggle scrolled={scrolled} />
 
-          <Link href={"/menu"}>
-            <Button variant="accent" className="font-semibold py-1" size="sm">
-              {t("headerButton.orderNow")}
-            </Button>
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-full transition"
+                  aria-label="Account menu"
+                >
+                  <Avatar className="h-8 w-8 border border-amber/40">
+                    <AvatarFallback className="bg-amber text-xs font-semibold text-white">
+                      {getInitials(user.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm font-semibold">{user.full_name}</p>
+                    <p className="text-xs capitalize text-muted-foreground">
+                      {user.role}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {dashboardHref && (
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={dashboardHref}>
+                      {t("headerDropdown.dashboard")}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/profile">{t("headerDropdown.profile")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  {t("headerDropdown.signOut")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href={"/signin"}>
+              <Button variant="accent" className="font-semibold py-1" size="sm">
+                {t("headerButton.signin")}
+              </Button>
+            </Link>
+          )}
         </nav>
 
         <Sheet open={open} onOpenChange={setOpen}>
@@ -115,13 +187,60 @@ export default function Header() {
                 </SheetClose>
               ))}
 
-              <SheetClose asChild>
-                <Link href={"/#bestsellers"}>
-                  <Button variant="accent" className="font-semibold">
-                    {t("headerButton.orderNow")}
-                  </Button>
-                </Link>
-              </SheetClose>
+              {user ? (
+                <div className="flex flex-col gap-3 border-t border-charcoal/10 pt-6">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9 border border-amber/40">
+                      <AvatarFallback className="bg-amber text-xs font-semibold text-white">
+                        {getInitials(user.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <p className="text-sm font-semibold text-charcoal">
+                        {user.full_name}
+                      </p>
+                      <p className="text-xs capitalize text-charcoal/50">
+                        {user.role}
+                      </p>
+                    </div>
+                  </div>
+                  {dashboardHref && (
+                    <SheetClose asChild>
+                      <Link
+                        href={dashboardHref}
+                        className="text-sm font-medium transition hover:text-charcoal"
+                      >
+                        {t("headerDropdown.dashboard")}
+                      </Link>
+                    </SheetClose>
+                  )}
+                  <SheetClose asChild>
+                    <Link
+                      href="/profile"
+                      className="text-sm font-medium transition hover:text-charcoal"
+                    >
+                      {t("headerDropdown.profile")}
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button
+                      variant="outline"
+                      className="font-semibold"
+                      onClick={logout}
+                    >
+                      {t("headerDropdown.signOut")}
+                    </Button>
+                  </SheetClose>
+                </div>
+              ) : (
+                <SheetClose asChild>
+                  <Link href={"/signin"}>
+                    <Button variant="accent" className="font-semibold">
+                      {t("headerButton.signin")}
+                    </Button>
+                  </Link>
+                </SheetClose>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
