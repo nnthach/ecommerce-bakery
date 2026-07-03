@@ -1,4 +1,8 @@
-import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
+import {
+  createSupabaseServerClient,
+  isSupabaseConfigured,
+  supabaseAdmin,
+} from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -10,15 +14,38 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const params = req.nextUrl.searchParams;
-    const store_id = params.get("store_id");
+    // lấy user hiện tại từ session
+    const res = new NextResponse(null);
+    const supabase = createSupabaseServerClient(req, res);
 
-    if (!store_id) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
       return NextResponse.json(
-        { success: false, error: "store_id is required" },
-        { status: 400 },
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
+
+    // lấy staff từ session
+    const { data: staff, error: staffError } = await supabaseAdmin
+      .from("staffs")
+      .select("store_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (staffError || !staff) {
+      return NextResponse.json(
+        { success: false, error: "Staff not found" },
+        { status: 403 },
+      );
+    }
+
+    // lấy đúng store của staff
+    const store_id = staff.store_id;
 
     const { data, error } = await supabaseAdmin
       .from("store_inventories")
@@ -63,11 +90,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // check staff
-    const staff = {
-      store_id: "bdedc75d-06a9-42c6-9199-f0de16a43daf",
-      id: "a467367b-3f2c-496f-910c-31080506233b",
-    };
+    // check staff => lấy user hiện tại từ session (cookie)
+    const res = new NextResponse(null);
+    const supabase = createSupabaseServerClient(req, res);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // lấy staff record
+    const { data: staff, error: staffError } = await supabaseAdmin
+      .from("staffs")
+      .select("id, store_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (staffError || !staff) {
+      return NextResponse.json(
+        { success: false, error: "Staff not found" },
+        { status: 403 },
+      );
+    }
 
     const body = await req.json();
     const { items } = body;

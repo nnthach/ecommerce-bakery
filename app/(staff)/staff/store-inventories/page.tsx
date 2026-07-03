@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StoreInventoryRaw, StoreItem } from "@/types";
+import { StoreInventoryRaw } from "@/types";
 import { useI18n } from "@/context/I18nContext";
 import Image from "next/image";
 import CreateStoreInventoryModal from "@/components/sections/staff/store-inventory/CreateStoreInventoryModal";
@@ -58,50 +58,14 @@ export default function StaffStoreInventoryPage() {
     useState<FilterState>(DEFAULT_FILTER);
   const [tempFilter, setTempFilter] = useState<FilterState>(DEFAULT_FILTER);
 
-  const [storeOptions, setStoreOptions] = useState<StoreItem[]>([]);
-  const [selectedStoreId, setSelectedStoreId] = useState("");
-  const [isLoadingStores, setIsLoadingStores] = useState(true);
-
   const { t, locale } = useI18n();
 
-  // fetch all stores once, then default-select the first one
-  useEffect(() => {
-    const fetchStores = async () => {
-      try {
-        setIsLoadingStores(true);
-        const res = await fetch("/api/admin/stores?is_active=true");
-        if (!res.ok) throw new Error("Failed to fetch stores");
-        const data = await res.json();
-        if (data.success && data.data) {
-          setStoreOptions(data.data);
-          if (data.data.length > 0) {
-            setSelectedStoreId(data.data[0].id);
-          }
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoadingStores(false);
-      }
-    };
-
-    fetchStores();
-  }, []);
-
-  const fetchStoreInventory = useCallback(async (storeId: string) => {
-    if (!storeId) return;
-
+  const fetchStoreInventory = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      // get param
-      const params = new URLSearchParams();
-      params.set("store_id", storeId);
-
-      // call api
-      const res = await fetch(
-        `/api/staff/store-inventories?${params.toString()}`,
-      );
+      // call api - server tự xác định store_id từ session
+      const res = await fetch("/api/staff/store-inventories");
       if (!res.ok) throw new Error("Failed to fetch store inventories");
       const data = await res.json();
 
@@ -116,23 +80,21 @@ export default function StaffStoreInventoryPage() {
     }
   }, []);
 
-  // only fetch inventory once a store_id is available; refetch when it changes
+  // only fetch inventory once a store_id is available
   useEffect(() => {
-    if (!selectedStoreId) return;
-    fetchStoreInventory(selectedStoreId);
-  }, [selectedStoreId, fetchStoreInventory]);
+    fetchStoreInventory();
+  }, [fetchStoreInventory]);
 
   // apply filter
   const handleApply = () => {
     setAppliedFilter(tempFilter);
-    fetchStoreInventory(selectedStoreId);
   };
 
   // clear filter
   const handleClearFilter = () => {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
-    fetchStoreInventory(selectedStoreId);
+    fetchStoreInventory();
   };
 
   //check filter
@@ -265,29 +227,6 @@ export default function StaffStoreInventoryPage() {
               </PopoverContent>
             </Popover>
 
-            <select
-              className="border rounded-md h-9 px-2 w-48 text-sm bg-card"
-              value={selectedStoreId}
-              onChange={(e) => setSelectedStoreId(e.target.value)}
-              disabled={isLoadingStores || storeOptions.length === 0}
-            >
-              {isLoadingStores ? (
-                <option value="">
-                  {t("admin.storeInventoriesPage.storeSelect.loading")}
-                </option>
-              ) : storeOptions.length === 0 ? (
-                <option value="">
-                  {t("admin.storeInventoriesPage.storeSelect.empty")}
-                </option>
-              ) : (
-                storeOptions.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))
-              )}
-            </select>
-
             {isFilterActive && (
               <button
                 onClick={handleClearFilter}
@@ -298,9 +237,7 @@ export default function StaffStoreInventoryPage() {
             )}
           </div>
 
-          <CreateStoreInventoryModal
-            onCreated={() => fetchStoreInventory(selectedStoreId)}
-          />
+          <CreateStoreInventoryModal onCreated={() => fetchStoreInventory()} />
         </div>
 
         {/* Table */}
