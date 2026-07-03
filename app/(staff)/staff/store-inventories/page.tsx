@@ -62,7 +62,7 @@ export default function StaffStoreInventoryPage() {
   const [selectedStoreId, setSelectedStoreId] = useState("");
   const [isLoadingStores, setIsLoadingStores] = useState(true);
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   // fetch all stores once, then default-select the first one
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function StaffStoreInventoryPage() {
 
       // call api
       const res = await fetch(
-        `/api/admin/store-inventories?${params.toString()}`,
+        `/api/staff/store-inventories?${params.toString()}`,
       );
       if (!res.ok) throw new Error("Failed to fetch store inventories");
       const data = await res.json();
@@ -366,6 +366,11 @@ export default function StaffStoreInventoryPage() {
                 };
                 const statusKey = storeInventory.status ?? "unknown";
 
+                const translation =
+                  storeInventory.products.product_translations.find(
+                    (tr) => tr.locale === locale,
+                  ) ?? storeInventory.products.product_translations[0];
+
                 return (
                   <TableRow key={storeInventory.id}>
                     <TableCell className="text-center text-muted-foreground text-xs">
@@ -375,17 +380,14 @@ export default function StaffStoreInventoryPage() {
                       <div className="relative w-12 h-12 overflow-hidden rounded-md">
                         <Image
                           src={storeInventory.products.image_url[0]}
-                          alt={
-                            storeInventory.products.product_translations[0]
-                              ?.name ?? ""
-                          }
+                          alt={translation?.name ?? ""}
                           fill
                           className="object-cover"
                         />
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {storeInventory.products.product_translations[0]?.name}
+                      {translation?.name}
                     </TableCell>
                     <TableCell className="font-medium">
                       {storeInventory.quantity}

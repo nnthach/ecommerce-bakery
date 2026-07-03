@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
 
     const params = req.nextUrl.searchParams;
     const store_id = params.get("store_id");
-    const locale = params.get("locale") ?? "vi";
 
     if (!store_id) {
       return NextResponse.json(
@@ -31,7 +30,7 @@ export async function GET(req: NextRequest) {
           price,
           image_url,
           is_active,
-          product_translations!inner(name, slug),
+          product_translations(locale, name, slug),
           categories(id, name)
         ),
         staffs(
@@ -41,7 +40,6 @@ export async function GET(req: NextRequest) {
       `,
       )
       .eq("store_id", store_id)
-      .eq("products.product_translations.locale", locale)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -92,12 +90,11 @@ export async function POST(req: NextRequest) {
       }),
     );
 
-    const { error } = await supabaseAdmin.from("store_inventories").upsert(
-      rows,
-      {
+    const { error } = await supabaseAdmin
+      .from("store_inventories")
+      .upsert(rows, {
         onConflict: "store_id, product_id",
-      },
-    );
+      });
 
     if (error) throw error;
 
