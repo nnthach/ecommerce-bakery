@@ -44,8 +44,6 @@ export default function Header() {
   const { t } = useI18n();
   const { user, logout } = useAuth();
 
-  console.log("user", user);
-
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();

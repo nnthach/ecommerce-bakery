@@ -59,6 +59,19 @@ export const translations = {
           generic: "Something went wrong. Please try again.",
         },
       },
+      registerPasswordPage: {
+        badge: "Almost There",
+        title: "Set Your Password",
+        subtitle: "Create a password to secure your account.",
+        passwordLabel: "Password",
+        passwordPlaceholder: "At least 6 characters",
+        submit: "Save Password",
+        errors: {
+          passwordRequired: "Password is required.",
+          passwordTooShort: "Password must be at least 6 characters.",
+          generic: "Something went wrong. Please try again.",
+        },
+      },
     },
     // home page
     homePage: {
@@ -749,6 +762,19 @@ export const translations = {
         errors: {
           fullNameRequired: "Vui lòng nhập họ và tên.",
           emailRequired: "Vui lòng nhập email.",
+          passwordRequired: "Vui lòng nhập mật khẩu.",
+          passwordTooShort: "Mật khẩu phải có ít nhất 6 ký tự.",
+          generic: "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        },
+      },
+      registerPasswordPage: {
+        badge: "Gần Xong Rồi",
+        title: "Thiết Lập Mật Khẩu",
+        subtitle: "Tạo mật khẩu để bảo vệ tài khoản của bạn.",
+        passwordLabel: "Mật khẩu",
+        passwordPlaceholder: "Ít nhất 6 ký tự",
+        submit: "Lưu mật khẩu",
+        errors: {
           passwordRequired: "Vui lòng nhập mật khẩu.",
           passwordTooShort: "Mật khẩu phải có ít nhất 6 ký tự.",
           generic: "Đã có lỗi xảy ra. Vui lòng thử lại.",

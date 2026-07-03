@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       full_name,
       role: "customer",
       status: "active",
+      has_password: true,
     });
 
     if (userError) {
