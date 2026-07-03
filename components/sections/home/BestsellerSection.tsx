@@ -4,13 +4,50 @@ import ProductCard from "@/components/custom/ProductCard";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/context/I18nContext";
 import { useInView } from "@/hooks/useInView";
-import { BESTSELLER_PRODUCTS } from "@/lib/content";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+
+interface FetchedProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  slug: string;
+  image_url: string[];
+  is_active: boolean;
+}
 
 export default function BestsellerSection() {
   const { ref, inView } = useInView<HTMLDivElement>();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const [products, setProducts] = useState<FetchedProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const fetchProducts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const params = new URLSearchParams({
+        is_active: "true",
+        locale,
+      });
+      const res = await fetch(`/api/products?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.data) {
+        setProducts(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [locale]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const formatPrice = (price: number) => price.toLocaleString("vi-VN") + " đ";
 
   return (
     <section id="bestsellers" className="relative z-10 bg-sand px-6 py-24">
@@ -29,15 +66,28 @@ export default function BestsellerSection() {
           ref={ref}
           className="mt-14 grid gap-8 text-left sm:grid-cols-2 lg:grid-cols-3"
         >
-          {BESTSELLER_PRODUCTS.map((product, index) => (
-            <ProductCard
-              key={product.name}
-              product={product}
-              index={index}
-              inView={inView}
-              animation
-            />
-          ))}
+          {isLoading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-80 animate-pulse rounded-2xl bg-white/60"
+                />
+              ))
+            : products.slice(0, 6).map((product, index) => (
+                <ProductCard
+                  key={product.id}
+                  product={{
+                    id: product.slug,
+                    image: product.image_url?.[0] ?? "/images/placeholder.webp",
+                    name: product.name,
+                    description: product.description,
+                    price: formatPrice(product.price),
+                  }}
+                  index={index}
+                  inView={inView}
+                  animation
+                />
+              ))}
         </div>
 
         <div className="mt-14">
