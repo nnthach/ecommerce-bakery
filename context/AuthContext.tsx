@@ -1,6 +1,6 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
+import { supabaseBrowser } from "@/lib/supabase";
 import { UserItem } from "@/types";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -15,6 +15,7 @@ export interface AuthUser extends UserItem {
 
 interface AuthContextType {
   user: AuthUser | null;
+  isLoading: boolean;
   setUser: (user: AuthUser | null) => void;
   logout: () => void;
 }
@@ -23,18 +24,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUserState] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  useEffect(() => {
-    const stored = localStorage.getItem("auth_user");
-    if (!stored) return;
-
-    try {
-      setUserState(JSON.parse(stored));
-    } catch {
-      localStorage.removeItem("auth_user");
-    }
-  }, []);
 
   const setUser = (nextUser: AuthUser | null) => {
     setUserState(nextUser);
@@ -46,14 +37,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  useEffect(() => {
+    const stored = localStorage.getItem("auth_user");
+
+    if (stored) {
+      try {
+        setUserState(JSON.parse(stored));
+        setIsLoading(false);
+        return;
+      } catch {
+        localStorage.removeItem("auth_user");
+      }
+    }
+
+    // No cached user — check for an active Supabase session
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((result) => {
+        if (result?.success && result.data?.user) {
+          setUser(result.data.user);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
   const logout = async () => {
     setUser(null);
-    await supabase.auth.signOut();
+    await supabaseBrowser.auth.signOut();
     router.push("/");
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
