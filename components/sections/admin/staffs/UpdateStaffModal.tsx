@@ -18,6 +18,7 @@ import InputFormField from "@/components/custom/InputFormField";
 import { createStaffSchema, StaffFormData } from "@/lib/validations/staffs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 interface UpdateStaffModalProps {
   staffId: string;
@@ -110,11 +111,16 @@ export default function UpdateStaffModal({
 
       if (!res.ok) throw new Error("Failed to update staff");
 
+      toast.success(
+        locale === "vi"
+          ? "Cập nhật nhân viên thành công!"
+          : "Staff updated successfully!",
+      );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         locale === "vi"
           ? "Cập nhật nhân viên thất bại"
           : "Failed to update staff",

@@ -22,6 +22,7 @@ import {
 } from "@/lib/validations/products";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 const INITIAL_FORM: ProductFormData = {
   name_vi: "",
@@ -187,12 +188,17 @@ export default function CreateProductModal({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to create product");
+      toast.success(
+        locale === "vi" ? "Tạo sản phẩm thành công!" : "Product created successfully!",
+      );
       resetForm();
       setOpen(false);
       onCreated?.();
     } catch (error) {
       console.error(error);
-      alert("Không thể tạo sản phẩm.");
+      toast.error(
+        locale === "vi" ? "Không thể tạo sản phẩm." : "Failed to create product.",
+      );
     }
   };
 

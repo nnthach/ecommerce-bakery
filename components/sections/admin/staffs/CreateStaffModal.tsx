@@ -18,6 +18,7 @@ import InputFormField from "@/components/custom/InputFormField";
 import { createStaffSchema, StaffFormData } from "@/lib/validations/staffs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 const INITIAL_FORM: StaffFormData = {
   fullname: "",
@@ -101,12 +102,15 @@ export default function CreateStaffModal({ onCreated }: CreateStaffModalProps) {
 
       if (!res.ok) throw new Error("Failed to create staff");
 
+      toast.success(
+        locale === "vi" ? "Tạo nhân viên thành công!" : "Staff created successfully!",
+      );
       reset();
       setOpen(false);
       onCreated?.();
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         locale === "vi" ? "Tạo nhân viên thất bại" : "Failed to create staff",
       );
     }

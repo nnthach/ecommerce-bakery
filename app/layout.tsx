@@ -3,6 +3,7 @@ import { Playfair_Display, Dancing_Script } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "@/context/I18nContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "react-hot-toast";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -32,9 +33,10 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${dancingScript.variable} antialiased`}
       >
-        <AuthProvider>
-          <I18nProvider>{children}</I18nProvider>
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </I18nProvider>
+        <Toaster position="top-right" reverseOrder={false} />
       </body>
     </html>
   );

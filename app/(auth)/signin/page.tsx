@@ -14,9 +14,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 export default function SignInPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { setUser } = useAuth();
   const router = useRouter();
 
@@ -45,6 +46,10 @@ export default function SignInPage() {
 
       setUser(result.data.user);
 
+      toast.success(
+        locale == "vi" ? "Đăng nhập thành công!" : "Sign in successful!",
+      );
+
       if (result.data.user.role === "admin") {
         router.replace("/admin/dashboard");
       } else if (result.data.user.role === "staff") {
@@ -54,6 +59,9 @@ export default function SignInPage() {
       }
     } catch (error) {
       console.error("Sign in error:", error);
+      toast.error(
+        locale == "vi" ? "Đăng nhập thất bại!" : "Sign in failed!",
+      );
     }
   };
 

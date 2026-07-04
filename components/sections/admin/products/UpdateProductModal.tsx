@@ -22,6 +22,7 @@ import {
 } from "@/lib/validations/products";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 const EMPTY_FORM: ProductFormData = {
   name_vi: "",
@@ -223,11 +224,16 @@ export default function UpdateProductModal({
 
       if (!res.ok) throw new Error("Failed to update product");
 
+      toast.success(
+        locale === "vi" ? "Cập nhật sản phẩm thành công!" : "Product updated successfully!",
+      );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
-      alert("Không thể cập nhật sản phẩm.");
+      toast.error(
+        locale === "vi" ? "Không thể cập nhật sản phẩm." : "Failed to update product.",
+      );
     }
   };
 

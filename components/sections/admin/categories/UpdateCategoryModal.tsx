@@ -20,6 +20,7 @@ import {
 } from "@/lib/validations/categories";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import InputFormField from "@/components/custom/InputFormField";
 
 interface UpdateCategoryModalProps {
@@ -34,7 +35,7 @@ export default function UpdateCategoryModal({
   onUpdated,
 }: UpdateCategoryModalProps) {
   const [open, setOpen] = useState(false);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const categorySchema = useMemo(
     () => createCategorySchema(t, "updateModal"),
@@ -69,11 +70,16 @@ export default function UpdateCategoryModal({
 
       if (!res.ok) throw new Error("Failed to update category");
 
+      toast.success(
+        locale === "vi" ? "Cập nhật danh mục thành công!" : "Category updated successfully!",
+      );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
-      alert("Không thể cập nhật danh mục.");
+      toast.error(
+        locale === "vi" ? "Không thể cập nhật danh mục." : "Failed to update category.",
+      );
     }
   };
 

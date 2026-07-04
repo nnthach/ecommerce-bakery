@@ -20,6 +20,7 @@ import {
 } from "@/lib/validations/ingredients";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import InputFormField from "@/components/custom/InputFormField";
 
 interface UpdateIngredientModalProps {
@@ -34,7 +35,7 @@ export default function UpdateIngredientModal({
   onUpdated,
 }: UpdateIngredientModalProps) {
   const [open, setOpen] = useState(false);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const ingredientSchema = useMemo(
     () => createIngredientSchema(t, "updateModal"),
@@ -69,11 +70,16 @@ export default function UpdateIngredientModal({
 
       if (!res.ok) throw new Error("Failed to update ingredient");
 
+      toast.success(
+        locale === "vi" ? "Cập nhật nguyên liệu thành công!" : "Ingredient updated successfully!",
+      );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
-      alert("Không thể cập nhật nguyên liệu.");
+      toast.error(
+        locale === "vi" ? "Không thể cập nhật nguyên liệu." : "Failed to update ingredient.",
+      );
     }
   };
 

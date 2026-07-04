@@ -20,6 +20,7 @@ import InputFormField from "@/components/custom/InputFormField";
 import { createStoreSchema, StoreFormData } from "@/lib/validations/stores";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 function toFormState(store: StoreItem): StoreFormData {
   return {
@@ -134,11 +135,16 @@ export default function UpdateStoreModal({
 
       if (!res.ok) throw new Error("Failed to update store");
 
+      toast.success(
+        locale === "vi" ? "Cập nhật cửa hàng thành công!" : "Store updated successfully!",
+      );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
-      alert("Không thể cập nhật cửa hàng.");
+      toast.error(
+        locale === "vi" ? "Không thể cập nhật cửa hàng." : "Failed to update store.",
+      );
     }
   };
 

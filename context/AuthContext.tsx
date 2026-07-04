@@ -4,6 +4,8 @@ import { UserItem } from "@/types";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import PageLoader from "@/components/custom/PageLoader";
+import toast from "react-hot-toast";
+import { useI18n } from "./I18nContext";
 
 export interface AuthUser extends UserItem {
   staff?: {
@@ -26,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { locale } = useI18n();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -51,8 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await fetch("/api/auth/signout", { method: "POST" });
+      toast.success(
+        locale === "vi" ? "Đăng xuất thành công!" : "Sign out successfully!",
+      );
     } catch {
-      console.log("logout err");
+      toast.success(
+        locale === "vi" ? "Đăng xuất thất bại!" : "Failed to sign out!",
+      );
     } finally {
       setUser(null);
       router.push("/");

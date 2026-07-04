@@ -15,15 +15,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 export default function RegisterPassword() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [serverError, setServerError] = useState<string | undefined>(
-    undefined,
-  );
 
   const registerPasswordSchema = useMemo(
     () => createRegisterPasswordSchema(t),
@@ -41,8 +39,6 @@ export default function RegisterPassword() {
   });
 
   const onSubmit = async (data: RegisterPasswordFormData) => {
-    setServerError(undefined);
-
     try {
       const res = await fetch("/api/auth/register-password", {
         method: "PUT",
@@ -52,16 +48,19 @@ export default function RegisterPassword() {
       const result = await res.json();
 
       if (!result.success) {
-        setServerError(
+        toast.error(
           result.error ?? t("authPage.registerPasswordPage.errors.generic"),
         );
         return;
       }
 
+      toast.success(
+        locale == "vi" ? "Đặt mật khẩu thành công!" : "Password set successfully!",
+      );
       router.replace("/");
     } catch (error) {
       console.error("Register password error:", error);
-      setServerError(t("authPage.registerPasswordPage.errors.generic"));
+      toast.error(t("authPage.registerPasswordPage.errors.generic"));
     }
   };
 
@@ -136,9 +135,9 @@ export default function RegisterPassword() {
                 )}
               </button>
             </div>
-            {(errors.password?.message ?? serverError) && (
+            {errors.password?.message && (
               <p className="mt-1.5 text-xs text-coral-600">
-                {errors.password?.message ?? serverError}
+                {errors.password.message}
               </p>
             )}
           </div>

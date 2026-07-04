@@ -21,6 +21,7 @@ import {
 } from "@/lib/validations/categories";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 const INITIAL_FORM: CategoryFormData = {
   name_vi: "",
@@ -36,7 +37,7 @@ interface CreateCategoryModalProps {
 export default function CreateCategoryModal({
   onCreated,
 }: CreateCategoryModalProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
 
   const categorySchema = useMemo(
@@ -72,12 +73,17 @@ export default function CreateCategoryModal({
 
       if (!res.ok) throw new Error("Failed to create category");
 
+      toast.success(
+        locale === "vi" ? "Tạo danh mục thành công!" : "Category created successfully!",
+      );
       reset();
       setOpen(false);
       onCreated?.();
     } catch (error) {
       console.error(error);
-      alert("Không thể tạo danh mục.");
+      toast.error(
+        locale === "vi" ? "Không thể tạo danh mục." : "Failed to create category.",
+      );
     }
   };
 

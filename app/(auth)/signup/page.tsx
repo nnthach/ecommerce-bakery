@@ -21,9 +21,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 export default function SignUpPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -49,10 +50,16 @@ export default function SignUpPage() {
       });
       const result = await res.json();
       if (result.success) {
+        toast.success(
+          locale == "vi" ? "Đăng ký thành công!" : "Sign up successful!",
+        );
         router.push("/signin");
       }
     } catch (error) {
       console.error("Sign up error:", error);
+      toast.error(
+        locale == "vi" ? "Đăng ký thất bại!" : "Sign up failed!",
+      );
     }
   };
 
