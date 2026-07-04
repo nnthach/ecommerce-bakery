@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,12 +14,17 @@ import {
 } from "@/components/ui/dialog";
 import { formatToSlug } from "@/lib/utils";
 import { useI18n } from "@/context/I18nContext";
-import { CategoryFormState } from "@/types/form-type";
+import {
+  createCategorySchema,
+  CategoryFormData,
+} from "@/lib/validations/categories";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import InputFormField from "@/components/custom/InputFormField";
 
 interface UpdateCategoryModalProps {
   id: string;
-  defaultValues: CategoryFormState;
+  defaultValues: CategoryFormData;
   onUpdated?: () => void;
 }
 
@@ -29,48 +34,31 @@ export default function UpdateCategoryModal({
   onUpdated,
 }: UpdateCategoryModalProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<CategoryFormState>(defaultValues);
-  const [errors, setErrors] = useState<Partial<CategoryFormState>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const { t } = useI18n();
 
-  const validate = (): boolean => {
-    const next: Partial<CategoryFormState> = {};
-    if (!form.name_vi.trim())
-      next.name_vi = t(
-        "admin.categoriesPage.updateModal.errors.nameViRequired",
-      );
-    if (!form.name_en.trim())
-      next.name_en = t(
-        "admin.categoriesPage.updateModal.errors.nameEnRequired",
-      );
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
+  const categorySchema = useMemo(
+    () => createCategorySchema(t, "updateModal"),
+    [t],
+  );
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof CategoryFormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: CategoryFormData) => {
     try {
-      setIsSubmitting(true);
       const payload = {
-        ...form,
-        slug_vi: formatToSlug(form.name_vi),
-        slug_en: formatToSlug(form.name_en),
+        ...data,
+        slug_vi: formatToSlug(data.name_vi),
+        slug_en: formatToSlug(data.name_en),
       };
 
       const res = await fetch(`/api/admin/categories/${id}`, {
@@ -81,22 +69,16 @@ export default function UpdateCategoryModal({
 
       if (!res.ok) throw new Error("Failed to update category");
 
-      setErrors({});
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
       alert("Không thể cập nhật danh mục.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      setForm(defaultValues);
-      setErrors({});
-    }
+    if (!next) reset(defaultValues);
     setOpen(next);
   };
 
@@ -115,59 +97,51 @@ export default function UpdateCategoryModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="space-y-4 py-2">
             <InputFormField
               label={t("admin.categoriesPage.updateModal.fields.nameVi")}
-              name="name_vi"
               placeholder="Ví dụ: Bánh mì"
               type="text"
-              value={form.name_vi}
-              onChange={handleChange}
-              error={errors.name_vi}
+              error={errors.name_vi?.message}
               disabled={isSubmitting}
               required
+              {...register("name_vi")}
             />
 
             {/* Name EN */}
             <InputFormField
               label={t("admin.categoriesPage.updateModal.fields.nameEn")}
-              name="name_en"
               placeholder="E.g. Bread"
               type="text"
-              value={form.name_en}
-              onChange={handleChange}
-              error={errors.name_en}
+              error={errors.name_en?.message}
               disabled={isSubmitting}
               required
+              {...register("name_en")}
             />
 
             {/* Description VI */}
             <InputFormField
               label={t("admin.categoriesPage.updateModal.fields.descriptionVi")}
-              name="description_vi"
               placeholder="Mô tả ngắn về danh mục..."
               type="textarea"
               rows={2}
-              value={form.description_vi}
-              onChange={handleChange}
-              error={errors.description_vi}
+              error={errors.description_vi?.message}
               disabled={isSubmitting}
               required
+              {...register("description_vi")}
             />
 
             {/* Description EN */}
             <InputFormField
               label={t("admin.categoriesPage.updateModal.fields.descriptionEn")}
-              name="description_en"
               placeholder="Short description about this category..."
               type="textarea"
               rows={2}
-              value={form.description_en}
-              onChange={handleChange}
-              error={errors.description_en}
+              error={errors.description_en?.message}
               disabled={isSubmitting}
               required
+              {...register("description_en")}
             />
           </div>
 

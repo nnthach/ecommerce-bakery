@@ -6,62 +6,42 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { handleLoginGoogle } from "@/lib/login-google";
+import { createSignInSchema, SignInFormData } from "@/lib/validations/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Croissant, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
-
-interface FormState {
-  email: string;
-  password: string;
-}
-
-const INITIAL_FORM: FormState = { email: "", password: "" };
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 
 export default function SignInPage() {
   const { t } = useI18n();
   const { setUser } = useAuth();
   const router = useRouter();
 
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [errors, setErrors] = useState<Partial<FormState>>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = (): boolean => {
-    const next: Partial<FormState> = {};
-    if (!form.email.trim())
-      next.email = t("authPage.signinPage.errors.emailRequired");
-    if (!form.password)
-      next.password = t("authPage.signinPage.errors.passwordRequired");
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
+  const signInSchema = useMemo(() => createSignInSchema(t), [t]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof FormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: SignInFormData) => {
     try {
-      setIsSubmitting(true);
-
       const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(data),
       });
       const result = await res.json();
-
-      console.log("Sign in result:", result);
 
       setUser(result.data.user);
 
@@ -74,8 +54,6 @@ export default function SignInPage() {
       }
     } catch (error) {
       console.error("Sign in error:", error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -116,7 +94,11 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          className="space-y-5"
+        >
           <div>
             <label
               htmlFor="email"
@@ -128,18 +110,18 @@ export default function SignInPage() {
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <Input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder={t("authPage.signinPage.emailPlaceholder")}
-                value={form.email}
-                onChange={handleChange}
                 disabled={isSubmitting}
                 className="border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/35 hover:border-amber/40 focus-visible:border-amber focus-visible:ring-0 focus-visible:ring-offset-0"
+                {...register("email")}
               />
             </div>
             {errors.email && (
-              <p className="mt-1.5 text-xs text-coral-600">{errors.email}</p>
+              <p className="mt-1.5 text-xs text-coral-600">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -154,14 +136,12 @@ export default function SignInPage() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <Input
                 id="password"
-                name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder={t("authPage.signinPage.passwordPlaceholder")}
-                value={form.password}
-                onChange={handleChange}
                 disabled={isSubmitting}
                 className="border-white/15 bg-white/5 pl-10 pr-10 text-white placeholder:text-white/35 hover:border-amber/40 focus-visible:border-amber focus-visible:ring-0 focus-visible:ring-offset-0"
+                {...register("password")}
               />
               <button
                 type="button"
@@ -177,7 +157,9 @@ export default function SignInPage() {
               </button>
             </div>
             {errors.password && (
-              <p className="mt-1.5 text-xs text-coral-600">{errors.password}</p>
+              <p className="mt-1.5 text-xs text-coral-600">
+                {errors.password.message}
+              </p>
             )}
           </div>
 

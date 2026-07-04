@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Plus, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,17 +16,11 @@ import { formatToSlug } from "@/lib/utils";
 import { uploadFileToCloudinary } from "@/lib/cloudinary";
 import { useI18n } from "@/context/I18nContext";
 import InputFormField from "@/components/custom/InputFormField";
+import { createStoreSchema, StoreFormData } from "@/lib/validations/stores";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
-interface FormState {
-  name: string;
-  address_vi: string;
-  address_en: string;
-  city: string;
-  district: string;
-  phone: string;
-}
-
-const INITIAL_FORM: FormState = {
+const INITIAL_FORM: StoreFormData = {
   name: "",
   address_vi: "",
   address_en: "",
@@ -41,29 +35,25 @@ interface CreateStoreModalProps {
 
 export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof FormState, string>>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { locale, t } = useI18n();
 
-  // handle change
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof FormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  const storeSchema = useMemo(() => createStoreSchema(t, "createModal"), [t]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<StoreFormData>({
+    resolver: zodResolver(storeSchema),
+    defaultValues: INITIAL_FORM,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
   // image
   const handleImageClick = () => {
@@ -96,29 +86,8 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
   };
   // end image
 
-  const validate = (): boolean => {
-    const next: Partial<Record<keyof FormState, string>> = {};
-    if (!form.name.trim())
-      next.name = t("admin.storesPage.createModal.errors.nameRequired");
-    if (!form.address_vi.trim())
-      next.address_vi = t(
-        "admin.storesPage.createModal.errors.addressViRequired",
-      );
-    if (!form.address_en.trim())
-      next.address_en = t(
-        "admin.storesPage.createModal.errors.addressEnRequired",
-      );
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: StoreFormData) => {
     try {
-      setIsSubmitting(true);
-
       // upload image
       let imageUrl = "";
       if (imageFile) {
@@ -127,9 +96,9 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
 
       // payload
       const payload = {
-        ...form,
+        ...data,
         image_url: imageUrl,
-        slug: formatToSlug(form.name),
+        slug: formatToSlug(data.name),
       };
 
       const res = await fetch("/api/admin/stores", {
@@ -144,14 +113,11 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
     } catch (error) {
       console.error(error);
       alert("Không thể tạo cửa hàng.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const resetForm = () => {
-    setForm(INITIAL_FORM);
-    setErrors({});
+    reset(INITIAL_FORM);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
@@ -177,8 +143,8 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
           <DialogTitle>{t("admin.storesPage.createModal.title")}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="max-h-[60vh] overflow-y-auto space-y-4 py-2 pr-1">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="max-h-[60vh] overflow-y-auto space-y-4 py-2 pr-1 custom-scrollbar">
             {/* Image Upload */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">
@@ -225,75 +191,63 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
             {/* Name */}
             <InputFormField
               label={t("admin.storesPage.createModal.fields.name")}
-              name="name"
               type="text"
               placeholder={
                 locale == "vi" ? "Ví dụ: Cửa hàng A" : "E.g. Store A"
               }
-              value={form.name}
-              onChange={handleChange}
-              error={errors.name}
+              error={errors.name?.message}
               disabled={isSubmitting}
               required
+              {...register("name")}
             />
 
             {/* Address VI / EN */}
             <InputFormField
               label={t("admin.storesPage.createModal.fields.addressVi")}
-              name="address_vi"
               type="textarea"
               rows={2}
               placeholder="Địa chỉ..."
-              value={form.address_vi}
-              onChange={handleChange}
-              error={errors.address_vi}
+              error={errors.address_vi?.message}
               disabled={isSubmitting}
               required
+              {...register("address_vi")}
             />
             <InputFormField
               label={t("admin.storesPage.createModal.fields.addressEn")}
-              name="address_en"
               type="textarea"
               rows={2}
               placeholder="Address..."
-              value={form.address_en}
-              onChange={handleChange}
-              error={errors.address_en}
+              error={errors.address_en?.message}
               disabled={isSubmitting}
               required
+              {...register("address_en")}
             />
 
             {/* City / District */}
             <div className="grid grid-cols-2 gap-3">
               <InputFormField
                 label={t("admin.storesPage.createModal.fields.city")}
-                name="city"
                 type="text"
                 placeholder="Ví dụ: Hồ Chí Minh"
-                value={form.city}
-                onChange={handleChange}
                 disabled={isSubmitting}
+                {...register("city")}
               />
               <InputFormField
                 label={t("admin.storesPage.createModal.fields.district")}
-                name="district"
                 type="text"
                 placeholder="Ví dụ: Quận 1"
-                value={form.district}
-                onChange={handleChange}
                 disabled={isSubmitting}
+                {...register("district")}
               />
             </div>
 
             {/* Phone */}
             <InputFormField
               label={t("admin.storesPage.createModal.fields.phone")}
-              name="phone"
               type="text"
               placeholder="Ví dụ: 0901234567"
-              value={form.phone}
-              onChange={handleChange}
               disabled={isSubmitting}
+              {...register("phone")}
             />
           </div>
 

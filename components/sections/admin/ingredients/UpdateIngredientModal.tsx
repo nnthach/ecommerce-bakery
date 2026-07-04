@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,12 +14,17 @@ import {
 } from "@/components/ui/dialog";
 import { formatToSlug } from "@/lib/utils";
 import { useI18n } from "@/context/I18nContext";
-import { IngredientFormState } from "@/types/form-type";
+import {
+  createIngredientSchema,
+  IngredientFormData,
+} from "@/lib/validations/ingredients";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import InputFormField from "@/components/custom/InputFormField";
 
 interface UpdateIngredientModalProps {
   id: string;
-  defaultValues: IngredientFormState;
+  defaultValues: IngredientFormData;
   onUpdated?: () => void;
 }
 
@@ -29,48 +34,31 @@ export default function UpdateIngredientModal({
   onUpdated,
 }: UpdateIngredientModalProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<IngredientFormState>(defaultValues);
-  const [errors, setErrors] = useState<Partial<IngredientFormState>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const { t } = useI18n();
 
-  const validate = (): boolean => {
-    const next: Partial<IngredientFormState> = {};
-    if (!form.name_vi.trim())
-      next.name_vi = t(
-        "admin.ingredientsPage.updateModal.errors.nameViRequired",
-      );
-    if (!form.name_en.trim())
-      next.name_en = t(
-        "admin.ingredientsPage.updateModal.errors.nameEnRequired",
-      );
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
+  const ingredientSchema = useMemo(
+    () => createIngredientSchema(t, "updateModal"),
+    [t],
+  );
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof IngredientFormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<IngredientFormData>({
+    resolver: zodResolver(ingredientSchema),
+    defaultValues,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: IngredientFormData) => {
     try {
-      setIsSubmitting(true);
       const payload = {
-        ...form,
-        slug_vi: formatToSlug(form.name_vi),
-        slug_en: formatToSlug(form.name_en),
+        ...data,
+        slug_vi: formatToSlug(data.name_vi),
+        slug_en: formatToSlug(data.name_en),
       };
 
       const res = await fetch(`/api/admin/ingredients/${id}`, {
@@ -81,22 +69,16 @@ export default function UpdateIngredientModal({
 
       if (!res.ok) throw new Error("Failed to update ingredient");
 
-      setErrors({});
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
       alert("Không thể cập nhật nguyên liệu.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      setForm(defaultValues);
-      setErrors({});
-    }
+    if (!next) reset(defaultValues);
     setOpen(next);
   };
 
@@ -115,32 +97,28 @@ export default function UpdateIngredientModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="space-y-4 py-2">
             {/* Name VI */}
             <InputFormField
-              label={t("admin.ingredientsPage.createModal.fields.nameVi")}
-              name="name_vi"
+              label={t("admin.ingredientsPage.updateModal.fields.nameVi")}
               placeholder="Ví dụ: Bột mì"
               type="text"
-              value={form.name_vi}
-              onChange={handleChange}
-              error={errors.name_vi}
+              error={errors.name_vi?.message}
               disabled={isSubmitting}
               required
+              {...register("name_vi")}
             />
 
             {/* Name EN */}
             <InputFormField
-              label={t("admin.ingredientsPage.createModal.fields.nameEn")}
-              name="name_en"
+              label={t("admin.ingredientsPage.updateModal.fields.nameEn")}
               placeholder="E.g. Flour"
               type="text"
-              value={form.name_en}
-              onChange={handleChange}
-              error={errors.name_en}
+              error={errors.name_en?.message}
               disabled={isSubmitting}
               required
+              {...register("name_en")}
             />
           </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +17,11 @@ import { uploadFileToCloudinary } from "@/lib/cloudinary";
 import { StoreItem } from "@/types";
 import { useI18n } from "@/context/I18nContext";
 import InputFormField from "@/components/custom/InputFormField";
-import { StoreFormState } from "@/types/form-type";
+import { createStoreSchema, StoreFormData } from "@/lib/validations/stores";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
-function toFormState(store: StoreItem): StoreFormState {
+function toFormState(store: StoreItem): StoreFormData {
   return {
     name: store.name,
     address_vi: store.address.vi,
@@ -40,11 +42,6 @@ export default function UpdateStoreModal({
   onUpdated,
 }: UpdateStoreModalProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<StoreFormState>(() => toFormState(store));
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof StoreFormState, string>>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [imagePreview, setImagePreview] = useState<string | null>(
     store.image_url || null,
@@ -57,26 +54,27 @@ export default function UpdateStoreModal({
 
   const { t, locale } = useI18n();
 
+  const storeSchema = useMemo(() => createStoreSchema(t, "updateModal"), [t]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<StoreFormData>({
+    resolver: zodResolver(storeSchema),
+    defaultValues: toFormState(store),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+
   useEffect(() => {
     if (!open) return;
-    setForm(toFormState(store));
+    reset(toFormState(store));
     setExistingImageUrl(store.image_url || "");
     setImagePreview(store.image_url || null);
     setImageFile(null);
-  }, [open, store]);
-
-  // handle change
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof StoreFormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  }, [open, store, reset]);
 
   // image
   const handleImageClick = () => {
@@ -113,29 +111,8 @@ export default function UpdateStoreModal({
   };
   // end image
 
-  const validate = (): boolean => {
-    const next: Partial<Record<keyof StoreFormState, string>> = {};
-    if (!form.name.trim())
-      next.name = t("admin.storesPage.updateModal.errors.nameRequired");
-    if (!form.address_vi.trim())
-      next.address_vi = t(
-        "admin.storesPage.updateModal.errors.addressViRequired",
-      );
-    if (!form.address_en.trim())
-      next.address_en = t(
-        "admin.storesPage.updateModal.errors.addressEnRequired",
-      );
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: StoreFormData) => {
     try {
-      setIsSubmitting(true);
-
       let imageUrl = "";
       if (imageFile) {
         imageUrl = await uploadFileToCloudinary(imageFile);
@@ -144,9 +121,9 @@ export default function UpdateStoreModal({
       }
 
       const payload = {
-        ...form,
+        ...data,
         image_url: imageUrl,
-        slug: formatToSlug(form.name),
+        slug: formatToSlug(data.name),
       };
 
       const res = await fetch(`/api/admin/stores/${store.id}`, {
@@ -157,20 +134,16 @@ export default function UpdateStoreModal({
 
       if (!res.ok) throw new Error("Failed to update store");
 
-      setErrors({});
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
       alert("Không thể cập nhật cửa hàng.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
-      setErrors({});
       if (imagePreview && imagePreview !== existingImageUrl) {
         URL.revokeObjectURL(imagePreview);
       }
@@ -192,8 +165,8 @@ export default function UpdateStoreModal({
           <DialogTitle>{t("admin.storesPage.updateModal.title")}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="max-h-[60vh] overflow-y-auto space-y-4 py-2 pr-1">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="max-h-[60vh] overflow-y-auto space-y-4 py-2 pr-1 custom-scrollbar">
             {/* Image Upload */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">
@@ -240,43 +213,37 @@ export default function UpdateStoreModal({
             {/* Name */}
             <InputFormField
               label={t("admin.storesPage.updateModal.fields.name")}
-              name="name"
               type="text"
               placeholder={
                 locale === "vi" ? "Ví dụ: Cửa hàng A" : "E.g. Store A"
               }
-              value={form.name}
-              onChange={handleChange}
-              error={errors.name}
+              error={errors.name?.message}
               disabled={isSubmitting}
               required
+              {...register("name")}
             />
 
             {/* Address VI / EN */}
             <div className="grid grid-cols-2 gap-3">
               <InputFormField
                 label={t("admin.storesPage.updateModal.fields.addressVi")}
-                name="address_vi"
                 type="textarea"
                 rows={2}
                 placeholder="Địa chỉ..."
-                value={form.address_vi}
-                onChange={handleChange}
-                error={errors.address_vi}
+                error={errors.address_vi?.message}
                 disabled={isSubmitting}
                 required
+                {...register("address_vi")}
               />
               <InputFormField
                 label={t("admin.storesPage.updateModal.fields.addressEn")}
-                name="address_en"
                 type="textarea"
                 rows={2}
                 placeholder="Address..."
-                value={form.address_en}
-                onChange={handleChange}
-                error={errors.address_en}
+                error={errors.address_en?.message}
                 disabled={isSubmitting}
                 required
+                {...register("address_en")}
               />
             </div>
 
@@ -284,33 +251,27 @@ export default function UpdateStoreModal({
             <div className="grid grid-cols-2 gap-3">
               <InputFormField
                 label={t("admin.storesPage.updateModal.fields.city")}
-                name="city"
                 type="text"
                 placeholder="Ví dụ: Hồ Chí Minh"
-                value={form.city}
-                onChange={handleChange}
                 disabled={isSubmitting}
+                {...register("city")}
               />
               <InputFormField
                 label={t("admin.storesPage.updateModal.fields.district")}
-                name="district"
                 type="text"
                 placeholder="Ví dụ: Quận 1"
-                value={form.district}
-                onChange={handleChange}
                 disabled={isSubmitting}
+                {...register("district")}
               />
             </div>
 
             {/* Phone */}
             <InputFormField
               label={t("admin.storesPage.updateModal.fields.phone")}
-              name="phone"
               type="text"
               placeholder="Ví dụ: 0901234567"
-              value={form.phone}
-              onChange={handleChange}
               disabled={isSubmitting}
+              {...register("phone")}
             />
           </div>
 

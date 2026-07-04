@@ -30,6 +30,7 @@ export const translations = {
         signUpLink: "Sign Up",
         errors: {
           emailRequired: "Email is required.",
+          emailInvalid: "Invalid email address.",
           passwordRequired: "Password is required.",
           generic: "Something went wrong. Please try again.",
         },
@@ -54,6 +55,7 @@ export const translations = {
         errors: {
           fullNameRequired: "Full name is required.",
           emailRequired: "Email is required.",
+          emailInvalid: "Invalid email address.",
           passwordRequired: "Password is required.",
           passwordTooShort: "Password must be at least 6 characters.",
           generic: "Something went wrong. Please try again.",
@@ -738,6 +740,7 @@ export const translations = {
         signUpLink: "Đăng ký",
         errors: {
           emailRequired: "Vui lòng nhập email.",
+          emailInvalid: "Email không hợp lệ.",
           passwordRequired: "Vui lòng nhập mật khẩu.",
           generic: "Đã có lỗi xảy ra. Vui lòng thử lại.",
         },
@@ -762,6 +765,7 @@ export const translations = {
         errors: {
           fullNameRequired: "Vui lòng nhập họ và tên.",
           emailRequired: "Vui lòng nhập email.",
+          emailInvalid: "Email không hợp lệ.",
           passwordRequired: "Vui lòng nhập mật khẩu.",
           passwordTooShort: "Mật khẩu phải có ít nhất 6 ký tự.",
           generic: "Đã có lỗi xảy ra. Vui lòng thử lại.",

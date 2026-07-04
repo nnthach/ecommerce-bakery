@@ -346,8 +346,6 @@ export default function AdminCategoryPage() {
                           description_vi: category.description.vi,
                           name_en: category.name.en,
                           description_en: category.description.en,
-                          slug_vi: category.slug.vi,
-                          slug_en: category.slug.en,
                         }}
                         onUpdated={fetchCategories}
                       />

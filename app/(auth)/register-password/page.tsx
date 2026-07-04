@@ -4,55 +4,55 @@ import LanguageToggle from "@/components/custom/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/context/I18nContext";
+import {
+  createRegisterPasswordSchema,
+  RegisterPasswordFormData,
+} from "@/lib/validations/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Croissant, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 
 export default function RegisterPassword() {
   const { t } = useI18n();
   const router = useRouter();
 
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | undefined>(undefined);
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | undefined>(
+    undefined,
+  );
 
-  const validate = (): boolean => {
-    if (!password) {
-      setError(t("authPage.registerPasswordPage.errors.passwordRequired"));
-      return false;
-    }
-    if (password.length < 6) {
-      setError(t("authPage.registerPasswordPage.errors.passwordTooShort"));
-      return false;
-    }
-    setError(undefined);
-    return true;
-  };
+  const registerPasswordSchema = useMemo(
+    () => createRegisterPasswordSchema(t),
+    [t],
+  );
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    if (error) setError(undefined);
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterPasswordFormData>({
+    resolver: zodResolver(registerPasswordSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const onSubmit = async (data: RegisterPasswordFormData) => {
+    setServerError(undefined);
 
     try {
-      setIsSubmitting(true);
-
       const res = await fetch("/api/auth/register-password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(data),
       });
       const result = await res.json();
 
       if (!result.success) {
-        setError(
+        setServerError(
           result.error ?? t("authPage.registerPasswordPage.errors.generic"),
         );
         return;
@@ -61,9 +61,7 @@ export default function RegisterPassword() {
       router.replace("/");
     } catch (error) {
       console.error("Register password error:", error);
-      setError(t("authPage.registerPasswordPage.errors.generic"));
-    } finally {
-      setIsSubmitting(false);
+      setServerError(t("authPage.registerPasswordPage.errors.generic"));
     }
   };
 
@@ -104,7 +102,7 @@ export default function RegisterPassword() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
           <div>
             <label
               htmlFor="password"
@@ -116,16 +114,14 @@ export default function RegisterPassword() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <Input
                 id="password"
-                name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 placeholder={t(
                   "authPage.registerPasswordPage.passwordPlaceholder",
                 )}
-                value={password}
-                onChange={handleChange}
                 disabled={isSubmitting}
                 className="border-white/15 bg-white/5 pl-10 pr-10 text-white placeholder:text-white/35 hover:border-amber/40 focus-visible:border-amber focus-visible:ring-0 focus-visible:ring-offset-0"
+                {...register("password")}
               />
               <button
                 type="button"
@@ -140,7 +136,11 @@ export default function RegisterPassword() {
                 )}
               </button>
             </div>
-            {error && <p className="mt-1.5 text-xs text-coral-600">{error}</p>}
+            {(errors.password?.message ?? serverError) && (
+              <p className="mt-1.5 text-xs text-coral-600">
+                {errors.password?.message ?? serverError}
+              </p>
+            )}
           </div>
 
           <Button

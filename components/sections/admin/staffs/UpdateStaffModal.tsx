@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n } from "@/context/I18nContext";
 import { StoreItem } from "@/types";
-import { StaffFormState } from "@/types/form-type";
 import InputFormField from "@/components/custom/InputFormField";
+import { createStaffSchema, StaffFormData } from "@/lib/validations/staffs";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 interface UpdateStaffModalProps {
   staffId: string;
-  defaultValues: StaffFormState;
+  defaultValues: StaffFormData;
   onUpdated?: () => void;
 }
 
@@ -30,13 +32,22 @@ export default function UpdateStaffModal({
 }: UpdateStaffModalProps) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<StaffFormState>(defaultValues);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof StaffFormState, string>>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [stores, setStores] = useState<StoreItem[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
+
+  const staffSchema = useMemo(() => createStaffSchema(t, "updateModal"), [t]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<StaffFormData>({
+    resolver: zodResolver(staffSchema),
+    defaultValues,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
   // fetch stores for the select when modal opens
   useEffect(() => {
@@ -89,49 +100,16 @@ export default function UpdateStaffModal({
     })),
   ];
 
-  const validate = (): boolean => {
-    const next: Partial<Record<keyof StaffFormState, string>> = {};
-    if (!form.fullname.trim())
-      next.fullname = t("admin.staffsPage.updateModal.errors.fullnameRequired");
-    if (!form.email.trim())
-      next.email = t("admin.staffsPage.updateModal.errors.emailRequired");
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      next.email = t("admin.staffsPage.updateModal.errors.emailInvalid");
-    if (!form.dob)
-      next.dob = t("admin.staffsPage.updateModal.errors.dobRequired");
-    if (!form.store_id)
-      next.store_id = t("admin.staffsPage.updateModal.errors.storeRequired");
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof StaffFormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: StaffFormData) => {
     try {
-      setIsSubmitting(true);
       const res = await fetch(`/api/admin/staffs/${staffId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(data),
       });
 
       if (!res.ok) throw new Error("Failed to update staff");
 
-      setErrors({});
       setOpen(false);
       onUpdated?.();
     } catch (error) {
@@ -141,16 +119,11 @@ export default function UpdateStaffModal({
           ? "Cập nhật nhân viên thất bại"
           : "Failed to update staff",
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      setForm(defaultValues);
-      setErrors({});
-    }
+    if (!next) reset(defaultValues);
     setOpen(next);
   };
 
@@ -167,71 +140,62 @@ export default function UpdateStaffModal({
           <DialogTitle>{t("admin.staffsPage.updateModal.title")}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="space-y-4 py-2">
             {/* Fullname */}
             <InputFormField
               label={t("admin.staffsPage.updateModal.fields.fullname")}
-              name="fullname"
               placeholder={t(
                 "admin.staffsPage.updateModal.fields.fullnamePlaceholder",
               )}
               type="text"
-              value={form.fullname}
-              onChange={handleChange}
-              error={errors.fullname}
+              error={errors.fullname?.message}
               disabled={isSubmitting}
               required
+              {...register("fullname")}
             />
 
             {/* Email */}
             <InputFormField
               label={t("admin.staffsPage.updateModal.fields.email")}
-              name="email"
               placeholder="example@email.com"
               type="email"
-              value={form.email}
-              onChange={handleChange}
-              error={errors.email}
+              error={errors.email?.message}
               disabled={isSubmitting}
               required
+              {...register("email")}
             />
 
             {/* Date of birth */}
             <InputFormField
               label={t("admin.staffsPage.updateModal.fields.dob")}
-              name="dob"
               type="date"
-              value={form.dob}
-              onChange={handleChange}
-              error={errors.dob}
+              error={errors.dob?.message}
               disabled={isSubmitting}
               required
+              {...register("dob")}
             />
 
             {/* Gender */}
             <InputFormField
               label={t("admin.staffsPage.updateModal.fields.gender")}
-              name="gender"
               type="select"
               selectData={genderOptions}
-              value={form.gender}
-              onChange={handleChange}
+              error={errors.gender?.message}
               disabled={isSubmitting}
               required
+              {...register("gender")}
             />
 
             {/* Store */}
             <InputFormField
               label={t("admin.staffsPage.updateModal.fields.store")}
-              name="store_id"
               type="select"
               selectData={storeOptions}
-              value={form.store_id}
-              onChange={handleChange}
-              error={errors.store_id}
+              error={errors.store_id?.message}
               disabled={isSubmitting || isLoadingStores}
               required
+              {...register("store_id")}
             />
           </div>
 

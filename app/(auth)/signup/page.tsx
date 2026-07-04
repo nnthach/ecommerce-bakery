@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/context/I18nContext";
 import { handleLoginGoogle } from "@/lib/login-google";
+import { createSignUpSchema, SignUpFormData } from "@/lib/validations/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Croissant,
   Eye,
@@ -17,58 +19,33 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
-
-interface FormState {
-  full_name: string;
-  email: string;
-  password: string;
-}
-
-const INITIAL_FORM: FormState = { full_name: "", email: "", password: "" };
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 
 export default function SignUpPage() {
   const { t } = useI18n();
   const router = useRouter();
 
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [errors, setErrors] = useState<Partial<FormState>>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = (): boolean => {
-    const next: Partial<FormState> = {};
-    if (!form.full_name.trim())
-      next.full_name = t("authPage.signupPage.errors.fullNameRequired");
-    if (!form.email.trim())
-      next.email = t("authPage.signupPage.errors.emailRequired");
-    if (!form.password)
-      next.password = t("authPage.signupPage.errors.passwordRequired");
-    else if (form.password.length < 6)
-      next.password = t("authPage.signupPage.errors.passwordTooShort");
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
+  const signUpSchema = useMemo(() => createSignUpSchema(t), [t]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof FormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: SignUpFormData) => {
     try {
-      setIsSubmitting(true);
-
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(data),
       });
       const result = await res.json();
       if (result.success) {
@@ -76,8 +53,6 @@ export default function SignUpPage() {
       }
     } catch (error) {
       console.error("Sign up error:", error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -118,7 +93,7 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div>
             <label
               htmlFor="full_name"
@@ -130,19 +105,17 @@ export default function SignUpPage() {
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <Input
                 id="full_name"
-                name="full_name"
                 type="text"
                 autoComplete="name"
                 placeholder={t("authPage.signupPage.fullNamePlaceholder")}
-                value={form.full_name}
-                onChange={handleChange}
                 disabled={isSubmitting}
                 className="border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/35 hover:border-amber/40 focus-visible:border-amber focus-visible:ring-0 focus-visible:ring-offset-0"
+                {...register("full_name")}
               />
             </div>
             {errors.full_name && (
               <p className="mt-1.5 text-xs text-coral-600">
-                {errors.full_name}
+                {errors.full_name.message}
               </p>
             )}
           </div>
@@ -158,18 +131,18 @@ export default function SignUpPage() {
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <Input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder={t("authPage.signupPage.emailPlaceholder")}
-                value={form.email}
-                onChange={handleChange}
                 disabled={isSubmitting}
                 className="border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/35 hover:border-amber/40 focus-visible:border-amber focus-visible:ring-0 focus-visible:ring-offset-0"
+                {...register("email")}
               />
             </div>
             {errors.email && (
-              <p className="mt-1.5 text-xs text-coral-600">{errors.email}</p>
+              <p className="mt-1.5 text-xs text-coral-600">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -184,14 +157,12 @@ export default function SignUpPage() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <Input
                 id="password"
-                name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 placeholder={t("authPage.signupPage.passwordPlaceholder")}
-                value={form.password}
-                onChange={handleChange}
                 disabled={isSubmitting}
                 className="border-white/15 bg-white/5 pl-10 pr-10 text-white placeholder:text-white/35 hover:border-amber/40 focus-visible:border-amber focus-visible:ring-0 focus-visible:ring-offset-0"
+                {...register("password")}
               />
               <button
                 type="button"
@@ -207,7 +178,9 @@ export default function SignUpPage() {
               </button>
             </div>
             {errors.password && (
-              <p className="mt-1.5 text-xs text-coral-600">{errors.password}</p>
+              <p className="mt-1.5 text-xs text-coral-600">
+                {errors.password.message}
+              </p>
             )}
           </div>
 

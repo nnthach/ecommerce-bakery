@@ -9,6 +9,8 @@ interface FieldExtraProps {
   className?: string;
 }
 
+type FieldElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
 interface InputFormFieldProps extends FieldExtraProps {
   label: string;
   labelNote?: string;
@@ -16,172 +18,161 @@ interface InputFormFieldProps extends FieldExtraProps {
   type: string;
   placeholder?: string;
   rows?: number;
-  value: string | number;
-  onChange?: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => void;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<FieldElement>) => void;
+  onBlur?: (e: React.FocusEvent<FieldElement>) => void;
   error?: string;
   required?: boolean;
   selectData?: SelectOption[];
   disabled?: boolean;
 }
 
-interface RenderFieldByTypeProps extends FieldExtraProps {
-  type: string;
-  name: string;
-  placeholder?: string;
-  rows?: number;
-  value: string | number;
-  onChange?: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => void;
-  disabled?: boolean;
-  selectData?: SelectOption[];
-  error?: string;
-}
+const InputFormField = React.forwardRef<FieldElement, InputFormFieldProps>(
+  function InputFormField(
+    {
+      label,
+      labelNote,
+      name,
+      rows,
+      type,
+      placeholder,
+      value,
+      onChange,
+      onBlur,
+      error,
+      required,
+      selectData,
+      disabled,
+      className,
+    },
+    ref,
+  ) {
+    const invalidClass = error ? "border-red-500 focus:border-red-500" : "";
+    const defaultClass =
+      "flex w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground";
+    const fieldClassName = `${className || defaultClass} ${invalidClass}`;
+    const valueProps = value !== undefined ? { value } : {};
 
-const renderFieldByType = ({
-  type,
-  name,
-  placeholder,
-  rows,
-  value,
-  onChange,
-  disabled,
-  selectData,
-  error,
-  ...props
-}: RenderFieldByTypeProps) => {
-  const invalidClass = error ? "border-red-500 focus:border-red-500" : "";
-  const defaultClass =
-    "flex w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground";
-  switch (type) {
-    case "textarea":
-      return (
-        <textarea
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          rows={rows}
-          value={value}
-          onChange={(e) => onChange?.(e)}
-          disabled={disabled}
-          className={`${props?.className || defaultClass} ${invalidClass}`}
-        />
-      );
-    case "select":
-      return (
-        <select
-          id={name}
-          name={name}
-          value={value}
-          onChange={(e) => onChange?.(e)}
-          disabled={disabled}
-          className={`${props?.className || defaultClass} ${invalidClass}`}
-        >
-          {selectData?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      );
-    case "date":
-      return (
-        <input
-          type="date"
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange?.(e)}
-          disabled={disabled}
-          className={`${props?.className || defaultClass} ${invalidClass}`}
-        />
-      );
-    case "number":
-      return (
-        <input
-          type="number"
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange?.(e)}
-          disabled={disabled}
-          className={`${props?.className || defaultClass} ${invalidClass}`}
-        />
-      );
-    case "email":
-      return (
-        <input
-          type="email"
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange?.(e)}
-          disabled={disabled}
-          className={`${props?.className || defaultClass} ${invalidClass}`}
-        />
-      );
-    default:
-      return (
-        <input
-          type="text"
-          id={name}
-          name={name}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange?.(e)}
-          disabled={disabled}
-          className={`${props?.className || defaultClass} ${invalidClass}`}
-        />
-      );
-  }
-};
+    let field: React.ReactNode;
+    switch (type) {
+      case "textarea":
+        field = (
+          <textarea
+            ref={ref as React.Ref<HTMLTextAreaElement>}
+            id={name}
+            name={name}
+            placeholder={placeholder}
+            rows={rows}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            className={fieldClassName}
+            {...valueProps}
+          />
+        );
+        break;
+      case "select":
+        field = (
+          <select
+            ref={ref as React.Ref<HTMLSelectElement>}
+            id={name}
+            name={name}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            className={fieldClassName}
+            {...valueProps}
+          >
+            {selectData?.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        );
+        break;
+      case "date":
+        field = (
+          <input
+            ref={ref as React.Ref<HTMLInputElement>}
+            type="date"
+            id={name}
+            name={name}
+            placeholder={placeholder}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            className={fieldClassName}
+            {...valueProps}
+          />
+        );
+        break;
+      case "number":
+        field = (
+          <input
+            ref={ref as React.Ref<HTMLInputElement>}
+            type="number"
+            id={name}
+            name={name}
+            placeholder={placeholder}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            className={fieldClassName}
+            {...valueProps}
+          />
+        );
+        break;
+      case "email":
+        field = (
+          <input
+            ref={ref as React.Ref<HTMLInputElement>}
+            type="email"
+            id={name}
+            name={name}
+            placeholder={placeholder}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            className={fieldClassName}
+            {...valueProps}
+          />
+        );
+        break;
+      default:
+        field = (
+          <input
+            ref={ref as React.Ref<HTMLInputElement>}
+            type="text"
+            id={name}
+            name={name}
+            placeholder={placeholder}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            className={fieldClassName}
+            {...valueProps}
+          />
+        );
+    }
 
-export default function InputFormField({
-  label,
-  labelNote,
-  name,
-  rows,
-  type,
-  placeholder,
-  value,
-  onChange,
-  error,
-  required,
-  selectData,
-  disabled,
-  ...props
-}: InputFormFieldProps) {
-  return (
-    <div className="space-y-1.5">
-      <div>
-        <label htmlFor={name} className="text-sm font-medium text-foreground">
-          {label}
-        </label>
-        {labelNote && <span>{labelNote}</span>}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+    return (
+      <div className="space-y-1.5">
+        <div>
+          <label
+            htmlFor={name}
+            className="text-sm font-medium text-foreground"
+          >
+            {label}
+          </label>
+          {labelNote && <span>{labelNote}</span>}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
+        </div>
+        {field}
+        {error && <span className="text-red-500">{error}</span>}
       </div>
-      {renderFieldByType({
-        type,
-        name,
-        placeholder,
-        rows,
-        value,
-        onChange,
-        disabled,
-        selectData,
-        error,
-        ...props,
-      })}
-      {error && <span className="text-red-500">{error}</span>}
-    </div>
-  );
-}
+    );
+  },
+);
+
+export default InputFormField;

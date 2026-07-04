@@ -345,8 +345,6 @@ export default function AdminIngredientPage() {
                         defaultValues={{
                           name_vi: ingredient.name.vi,
                           name_en: ingredient.name.en,
-                          slug_vi: ingredient.slug.vi,
-                          slug_en: ingredient.slug.en,
                         }}
                         onUpdated={() => fetchIngredients(appliedFilter)}
                       />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,31 +16,21 @@ import { formatToSlug } from "@/lib/utils";
 import { CategoryItem, IngredientItem, ProductItem } from "@/types";
 import { uploadFileToCloudinary } from "@/lib/cloudinary";
 import { useI18n } from "@/context/I18nContext";
+import {
+  createProductSchema,
+  ProductFormData,
+} from "@/lib/validations/products";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
-interface FormState {
-  name_vi: string;
-  description_vi: string;
-  name_en: string;
-  description_en: string;
-  slug_vi: string;
-  slug_en: string;
-  price: number;
-  category_id: string;
-  ingredient_ids: string[];
-  image_url: string[];
-}
-
-const EMPTY_FORM: FormState = {
+const EMPTY_FORM: ProductFormData = {
   name_vi: "",
   description_vi: "",
   name_en: "",
   description_en: "",
-  slug_vi: "",
-  slug_en: "",
   price: 0,
   category_id: "",
   ingredient_ids: [],
-  image_url: [],
 };
 
 const inputCls =
@@ -79,12 +69,6 @@ export default function UpdateProductModal({
   onUpdated,
 }: UpdateProductModalProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof FormState, string>>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string>("");
@@ -95,6 +79,27 @@ export default function UpdateProductModal({
   const [loadingMeta, setLoadingMeta] = useState(false);
 
   const { locale, t } = useI18n();
+
+  const productSchema = useMemo(
+    () => createProductSchema(t, "updateModal"),
+    [t],
+  );
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<ProductFormData>({
+    resolver: zodResolver(productSchema),
+    defaultValues: EMPTY_FORM,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+
+  const ingredientIds = watch("ingredient_ids");
 
   useEffect(() => {
     if (!open) return;
@@ -127,17 +132,14 @@ export default function UpdateProductModal({
           | IngredientItem[]
           | undefined;
 
-        setForm({
+        reset({
           name_vi: viData.name ?? "",
           description_vi: viData.description ?? "",
-          slug_vi: viData.slug ?? "",
           name_en: enData.name ?? "",
           description_en: enData.description ?? "",
-          slug_en: enData.slug ?? "",
           price: product.price,
           category_id: product.category?.id ?? "",
           ingredient_ids: currentIngredients?.map((i) => i.id) ?? [],
-          image_url: product.image_url,
         });
 
         const existing = product.image_url[0] ?? "";
@@ -152,30 +154,15 @@ export default function UpdateProductModal({
     };
 
     init();
-  }, [open, product]);
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "price" ? Number(value) : value,
-    }));
-    if (errors[name as keyof FormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  }, [open, product, reset]);
 
   const toggleIngredient = (id: string) => {
-    setForm((prev) => ({
-      ...prev,
-      ingredient_ids: prev.ingredient_ids.includes(id)
-        ? prev.ingredient_ids.filter((i) => i !== id)
-        : [...prev.ingredient_ids, id],
-    }));
+    setValue(
+      "ingredient_ids",
+      ingredientIds.includes(id)
+        ? ingredientIds.filter((i) => i !== id)
+        : [...ingredientIds, id],
+    );
   };
 
   const handleImageClick = () => {
@@ -211,27 +198,8 @@ export default function UpdateProductModal({
     }
   };
 
-  const validate = (): boolean => {
-    const next: Partial<Record<keyof FormState, string>> = {};
-    if (!form.name_vi.trim())
-      next.name_vi = t("admin.productsPage.updateModal.errors.nameViRequired");
-    if (!form.price || form.price <= 0)
-      next.price = t("admin.productsPage.updateModal.errors.priceRequired");
-    if (!form.category_id)
-      next.category_id = t(
-        "admin.productsPage.updateModal.errors.categoryRequired",
-      );
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const onSubmit = async (data: ProductFormData) => {
     try {
-      setIsSubmitting(true);
-
       let imageUrls: string[] = [];
       if (imageFile) {
         const uploaded = await uploadFileToCloudinary(imageFile);
@@ -241,10 +209,10 @@ export default function UpdateProductModal({
       }
 
       const payload = {
-        ...form,
+        ...data,
         image_url: imageUrls,
-        slug_vi: formatToSlug(form.name_vi),
-        slug_en: formatToSlug(form.name_en),
+        slug_vi: formatToSlug(data.name_vi),
+        slug_en: formatToSlug(data.name_en),
       };
 
       const res = await fetch(`/api/admin/products/${product.id}`, {
@@ -260,14 +228,11 @@ export default function UpdateProductModal({
     } catch (error) {
       console.error(error);
       alert("Không thể cập nhật sản phẩm.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
-      setErrors({});
       if (imagePreview && imagePreview !== existingImageUrl) {
         URL.revokeObjectURL(imagePreview);
       }
@@ -289,8 +254,8 @@ export default function UpdateProductModal({
           <DialogTitle>{t("admin.productsPage.updateModal.title")}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="max-h-[60vh] overflow-y-auto space-y-4 py-2 pr-1">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="max-h-[60vh] overflow-y-auto space-y-4 py-2 pr-1 custom-scrollbar">
             {/* Image Upload */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">
@@ -339,28 +304,24 @@ export default function UpdateProductModal({
               <Field
                 label={t("admin.productsPage.updateModal.fields.nameVi")}
                 required
-                error={errors.name_vi}
+                error={errors.name_vi?.message}
               >
                 <input
-                  name="name_vi"
                   placeholder="Ví dụ: Bánh mì"
-                  value={form.name_vi}
-                  onChange={handleChange}
                   disabled={isSubmitting || loadingMeta}
                   className={inputCls}
+                  {...register("name_vi")}
                 />
               </Field>
               <Field
                 label={t("admin.productsPage.updateModal.fields.nameEn")}
-                error={errors.name_en}
+                error={errors.name_en?.message}
               >
                 <input
-                  name="name_en"
                   placeholder="E.g: Bread"
-                  value={form.name_en}
-                  onChange={handleChange}
                   disabled={isSubmitting || loadingMeta}
                   className={inputCls}
+                  {...register("name_en")}
                 />
               </Field>
             </div>
@@ -369,17 +330,15 @@ export default function UpdateProductModal({
             <Field
               label={t("admin.productsPage.updateModal.fields.price")}
               required
-              error={errors.price}
+              error={errors.price?.message}
             >
               <input
-                name="price"
                 type="number"
                 min={0}
                 placeholder="0"
-                value={form.price || ""}
-                onChange={handleChange}
                 disabled={isSubmitting || loadingMeta}
                 className={inputCls}
+                {...register("price", { valueAsNumber: true })}
               />
             </Field>
 
@@ -388,26 +347,22 @@ export default function UpdateProductModal({
               label={t("admin.productsPage.updateModal.fields.descriptionVi")}
             >
               <textarea
-                name="description_vi"
                 rows={3}
                 placeholder="Mô tả..."
-                value={form.description_vi}
-                onChange={handleChange}
                 disabled={isSubmitting || loadingMeta}
                 className={inputCls}
+                {...register("description_vi")}
               />
             </Field>
             <Field
               label={t("admin.productsPage.updateModal.fields.descriptionEn")}
             >
               <textarea
-                name="description_en"
                 rows={3}
                 placeholder="Description..."
-                value={form.description_en}
-                onChange={handleChange}
                 disabled={isSubmitting || loadingMeta}
                 className={inputCls}
+                {...register("description_en")}
               />
             </Field>
 
@@ -415,7 +370,7 @@ export default function UpdateProductModal({
             <Field
               label={t("admin.productsPage.updateModal.fields.category")}
               required
-              error={errors.category_id}
+              error={errors.category_id?.message}
             >
               {loadingMeta ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
@@ -424,11 +379,9 @@ export default function UpdateProductModal({
                 </div>
               ) : (
                 <select
-                  name="category_id"
-                  value={form.category_id}
-                  onChange={handleChange}
                   disabled={isSubmitting}
                   className={inputCls}
+                  {...register("category_id")}
                 >
                   <option value="">
                     {t(
@@ -460,7 +413,7 @@ export default function UpdateProductModal({
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {ingredients.map((ing) => {
-                    const selected = form.ingredient_ids.includes(ing.id);
+                    const selected = ingredientIds.includes(ing.id);
                     return (
                       <button
                         key={ing.id}
@@ -480,11 +433,11 @@ export default function UpdateProductModal({
                   })}
                 </div>
               )}
-              {form.ingredient_ids.length > 0 && (
+              {ingredientIds.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {locale === "vi"
-                    ? `Đã chọn: ${form.ingredient_ids.length} nguyên liệu`
-                    : `Selected: ${form.ingredient_ids.length} ingredients`}
+                    ? `Đã chọn: ${ingredientIds.length} nguyên liệu`
+                    : `Selected: ${ingredientIds.length} ingredients`}
                 </p>
               )}
             </Field>
