@@ -1,9 +1,19 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Filter, Trash2, LayoutGrid, Loader2, Ban, RotateCcw } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Filter,
+  Search,
+  X,
+  Trash2,
+  LayoutGrid,
+  Loader2,
+  Ban,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverClose,
@@ -23,6 +33,9 @@ import { useI18n } from "@/context/I18nContext";
 import CreateStoreModal from "@/components/sections/admin/stores/CreateStoreModal";
 import UpdateStoreModal from "@/components/sections/admin/stores/UpdateStoreModal";
 import Image from "next/image";
+import AdminPagination from "@/components/custom/AdminPagination";
+import { usePagination } from "@/hooks/usePagination";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const STATUS_OPTIONS = [
   { label: "Tất cả", value: "" },
@@ -40,16 +53,28 @@ const ORDER_OPTIONS = [
   { label: "Tăng dần", value: "asc" },
 ];
 
+const DEFAULT_LIMIT = 8;
+
+const LIMIT_OPTIONS = [
+  { label: `${DEFAULT_LIMIT}`, value: String(DEFAULT_LIMIT) },
+  { label: "10", value: "10" },
+  { label: "15", value: "15" },
+  { label: "20", value: "20" },
+  { label: "50", value: "50" },
+];
+
 interface FilterState {
   is_active: boolean | undefined;
   sort_by: "name" | "created_at";
   order: "asc" | "desc";
+  limit: number;
 }
 
 const DEFAULT_FILTER: FilterState = {
   is_active: undefined,
   sort_by: "created_at",
   order: "desc",
+  limit: DEFAULT_LIMIT,
 };
 
 export default function AdminStorePage() {
@@ -60,9 +85,14 @@ export default function AdminStorePage() {
   const [tempFilter, setTempFilter] = useState<FilterState>(DEFAULT_FILTER);
 
   const { t, locale } = useI18n();
+  const { page, setPage, pagination, setPagination, resetPage } =
+    usePagination();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+  const isFirstSearch = useRef(true);
 
   const fetchStores = useCallback(
-    async (filter: FilterState = appliedFilter) => {
+    async (filter: FilterState = appliedFilter, pageNum: number = page) => {
       try {
         setIsLoading(true);
 
@@ -73,6 +103,11 @@ export default function AdminStorePage() {
         }
         params.set("sort_by", filter.sort_by);
         params.set("order", filter.order);
+        params.set("page", String(pageNum));
+        params.set("limit", String(filter.limit));
+        if (debouncedSearch) {
+          params.set("search", debouncedSearch);
+        }
 
         // call api
         const res = await fetch(`/api/admin/stores?${params.toString()}`);
@@ -82,6 +117,7 @@ export default function AdminStorePage() {
         // check
         if (data.success && data.data) {
           setStores(data.data);
+          setPagination(data.pagination ?? null);
         }
       } catch (error) {
         console.error(error);
@@ -89,12 +125,23 @@ export default function AdminStorePage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter],
+    [appliedFilter, page, debouncedSearch],
   );
 
   useEffect(() => {
     fetchStores();
   }, [fetchStores]);
+
+  // reset to page 1 whenever the (debounced) search term changes
+  useEffect(() => {
+    if (isFirstSearch.current) {
+      isFirstSearch.current = false;
+      return;
+    }
+    resetPage();
+    fetchStores(appliedFilter, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   // disable (soft delete)
   const disableStore = async (id: string) => {
@@ -103,7 +150,7 @@ export default function AdminStorePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
-      fetchStores(appliedFilter);
+      fetchStores(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to disable");
@@ -117,7 +164,7 @@ export default function AdminStorePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
-      fetchStores(appliedFilter);
+      fetchStores(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to restore");
@@ -134,7 +181,7 @@ export default function AdminStorePage() {
 
     try {
       await fetch(`/api/admin/stores/${id}`, { method: "DELETE" });
-      fetchStores(appliedFilter);
+      fetchStores(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to delete");
@@ -144,28 +191,32 @@ export default function AdminStorePage() {
   // apply filter
   const handleApply = () => {
     setAppliedFilter(tempFilter);
-    fetchStores(tempFilter);
+    resetPage();
+    fetchStores(tempFilter, 1);
   };
 
   // clear filter
   const handleClearFilter = () => {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
-    fetchStores(DEFAULT_FILTER);
+    resetPage();
+    fetchStores(DEFAULT_FILTER, 1);
   };
 
   //check filter
   const isFilterActive =
     appliedFilter.is_active !== undefined ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
-    appliedFilter.order !== DEFAULT_FILTER.order;
+    appliedFilter.order !== DEFAULT_FILTER.order ||
+    appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
     (appliedFilter.is_active !== undefined ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
-      : 0);
+      : 0) +
+    (appliedFilter.limit !== DEFAULT_FILTER.limit ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -275,6 +326,29 @@ export default function AdminStorePage() {
                     </select>
                   </div>
 
+                  {/* Limit per page */}
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium leading-none">
+                      Số dòng mỗi trang
+                    </p>
+                    <select
+                      className="border rounded-md h-9 px-2 w-full text-sm"
+                      value={String(tempFilter.limit)}
+                      onChange={(e) =>
+                        setTempFilter((prev) => ({
+                          ...prev,
+                          limit: parseInt(e.target.value, 10),
+                        }))
+                      }
+                    >
+                      {LIMIT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <PopoverClose asChild>
                     <Button variant={"accent"} size="sm" onClick={handleApply}>
                       {t("button.apply")}
@@ -283,6 +357,28 @@ export default function AdminStorePage() {
                 </div>
               </PopoverContent>
             </Popover>
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={
+                  locale === "vi" ? "Tìm cửa hàng..." : "Search stores..."
+                }
+                className="h-9 w-56 border-border bg-white pl-8 pr-8 text-sm focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label={locale === "vi" ? "Xóa tìm kiếm" : "Clear search"}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             {isFilterActive && (
               <button
@@ -294,7 +390,9 @@ export default function AdminStorePage() {
             )}
           </div>
 
-          <CreateStoreModal onCreated={() => fetchStores(appliedFilter)} />
+          <CreateStoreModal
+            onCreated={() => fetchStores(appliedFilter, page)}
+          />
         </div>
 
         {/* Table */}
@@ -409,7 +507,7 @@ export default function AdminStorePage() {
                         <>
                           <UpdateStoreModal
                             store={store}
-                            onUpdated={() => fetchStores(appliedFilter)}
+                            onUpdated={() => fetchStores(appliedFilter, page)}
                           />
                           <Button
                             onClick={() => disableStore(store.id)}
@@ -430,12 +528,24 @@ export default function AdminStorePage() {
         </Table>
 
         {/* Footer count */}
-        <div className="border-t px-6 py-3">
+        <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
-            {locale == "vi" ? "Hiển thị" : "Showing"}{" "}
-            <span className="font-medium text-foreground">{stores.length}</span>{" "}
+            {t("admin.table.pagination.showing")}{" "}
+            <span className="font-medium text-foreground">
+              {stores.length}
+            </span>{" "}
+            {t("admin.table.pagination.of")}{" "}
+            <span className="font-medium text-foreground">
+              {pagination?.total_items ?? stores.length}
+            </span>{" "}
             {locale == "vi" ? "cửa hàng" : "stores"}
           </p>
+
+          <AdminPagination
+            page={page}
+            totalPages={pagination?.total_pages ?? 0}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </div>

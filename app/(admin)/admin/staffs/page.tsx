@@ -1,9 +1,19 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Filter, Trash2, LayoutGrid, Loader2, Ban, RotateCcw } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Filter,
+  Search,
+  X,
+  Trash2,
+  LayoutGrid,
+  Loader2,
+  Ban,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverClose,
@@ -22,17 +32,32 @@ import CreateStaffModal from "@/components/sections/admin/staffs/CreateStaffModa
 import UpdateStaffModal from "@/components/sections/admin/staffs/UpdateStaffModal";
 import { useI18n } from "@/context/I18nContext";
 import { StaffItem } from "@/types";
+import AdminPagination from "@/components/custom/AdminPagination";
+import { usePagination } from "@/hooks/usePagination";
+import { useDebounce } from "@/hooks/useDebounce";
+
+const DEFAULT_LIMIT = 8;
+
+const LIMIT_OPTIONS = [
+  { label: `${DEFAULT_LIMIT}`, value: String(DEFAULT_LIMIT) },
+  { label: "10", value: "10" },
+  { label: "15", value: "15" },
+  { label: "20", value: "20" },
+  { label: "50", value: "50" },
+];
 
 interface FilterState {
   is_active: boolean | undefined;
   sort_by: "full_name" | "created_at";
   order: "asc" | "desc";
+  limit: number;
 }
 
 const DEFAULT_FILTER: FilterState = {
   is_active: undefined,
   sort_by: "created_at",
   order: "desc",
+  limit: DEFAULT_LIMIT,
 };
 
 export default function AdminStaffPage() {
@@ -42,6 +67,11 @@ export default function AdminStaffPage() {
   const [appliedFilter, setAppliedFilter] =
     useState<FilterState>(DEFAULT_FILTER);
   const [tempFilter, setTempFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const { page, setPage, pagination, setPagination, resetPage } =
+    usePagination();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+  const isFirstSearch = useRef(true);
 
   const STATUS_OPTIONS = [
     { label: t("admin.staffsPage.filter.statusOptions.all"), value: "" },
@@ -70,7 +100,7 @@ export default function AdminStaffPage() {
 
   // fetch staffs from API
   const fetchStaffs = useCallback(
-    async (filter: FilterState = appliedFilter) => {
+    async (filter: FilterState = appliedFilter, pageNum: number = page) => {
       try {
         setIsLoading(true);
 
@@ -81,6 +111,11 @@ export default function AdminStaffPage() {
         }
         params.set("sort_by", filter.sort_by);
         params.set("order", filter.order);
+        params.set("page", String(pageNum));
+        params.set("limit", String(filter.limit));
+        if (debouncedSearch) {
+          params.set("search", debouncedSearch);
+        }
 
         // call api
         const res = await fetch(`/api/admin/staffs?${params.toString()}`);
@@ -90,6 +125,7 @@ export default function AdminStaffPage() {
         // check
         if (data.success && data.data) {
           setStaffs(data.data);
+          setPagination(data.pagination ?? null);
         }
       } catch (error) {
         console.error(error);
@@ -97,12 +133,23 @@ export default function AdminStaffPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter],
+    [appliedFilter, page, debouncedSearch],
   );
 
   useEffect(() => {
     fetchStaffs();
   }, [fetchStaffs]);
+
+  // reset to page 1 whenever the (debounced) search term changes
+  useEffect(() => {
+    if (isFirstSearch.current) {
+      isFirstSearch.current = false;
+      return;
+    }
+    resetPage();
+    fetchStaffs(appliedFilter, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   // disable (soft delete)
   const disableStaff = async (id: string) => {
@@ -111,7 +158,7 @@ export default function AdminStaffPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
-      fetchStaffs(appliedFilter);
+      fetchStaffs(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to disable");
@@ -125,7 +172,7 @@ export default function AdminStaffPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
-      fetchStaffs(appliedFilter);
+      fetchStaffs(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to restore");
@@ -138,7 +185,7 @@ export default function AdminStaffPage() {
 
     try {
       await fetch(`/api/admin/staffs/${id}`, { method: "DELETE" });
-      fetchStaffs(appliedFilter);
+      fetchStaffs(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to delete");
@@ -147,26 +194,30 @@ export default function AdminStaffPage() {
 
   const handleApply = () => {
     setAppliedFilter(tempFilter);
-    fetchStaffs(tempFilter);
+    resetPage();
+    fetchStaffs(tempFilter, 1);
   };
 
   const handleClearFilter = () => {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
-    fetchStaffs(DEFAULT_FILTER);
+    resetPage();
+    fetchStaffs(DEFAULT_FILTER, 1);
   };
 
   const isFilterActive =
     appliedFilter.is_active !== undefined ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
-    appliedFilter.order !== DEFAULT_FILTER.order;
+    appliedFilter.order !== DEFAULT_FILTER.order ||
+    appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
     (appliedFilter.is_active !== undefined ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
-      : 0);
+      : 0) +
+    (appliedFilter.limit !== DEFAULT_FILTER.limit ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -274,6 +325,29 @@ export default function AdminStaffPage() {
                     </select>
                   </div>
 
+                  {/* Limit per page */}
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium leading-none">
+                      Số dòng mỗi trang
+                    </p>
+                    <select
+                      className="border rounded-md h-9 px-2 w-full text-sm"
+                      value={String(tempFilter.limit)}
+                      onChange={(e) =>
+                        setTempFilter((prev) => ({
+                          ...prev,
+                          limit: parseInt(e.target.value, 10),
+                        }))
+                      }
+                    >
+                      {LIMIT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <PopoverClose asChild>
                     <Button variant="accent" size="sm" onClick={handleApply}>
                       {t("button.apply")}
@@ -282,6 +356,26 @@ export default function AdminStaffPage() {
                 </div>
               </PopoverContent>
             </Popover>
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("admin.staffsPage.searchPlaceholder")}
+                className="h-9 w-56 border-border bg-white pl-8 pr-8 text-sm focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label={t("admin.staffsPage.clearSearch")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             {isFilterActive && (
               <button
@@ -293,7 +387,9 @@ export default function AdminStaffPage() {
             )}
           </div>
 
-          <CreateStaffModal onCreated={() => fetchStaffs(appliedFilter)} />
+          <CreateStaffModal
+            onCreated={() => fetchStaffs(appliedFilter, page)}
+          />
         </div>
 
         {/* Table */}
@@ -397,7 +493,7 @@ export default function AdminStaffPage() {
                               store_id: staff.store_id ?? "",
                             }}
                             onUpdated={() => {
-                              fetchStaffs(appliedFilter);
+                              fetchStaffs(appliedFilter, page);
                             }}
                           />
                           <Button
@@ -418,12 +514,24 @@ export default function AdminStaffPage() {
           </TableBody>
         </Table>
 
-        <div className="border-t px-6 py-3">
+        <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {t("admin.staffsPage.showing")}{" "}
-            <span className="font-medium text-foreground">{staffs.length}</span>{" "}
+            <span className="font-medium text-foreground">
+              {staffs.length}
+            </span>{" "}
+            {t("admin.table.pagination.of")}{" "}
+            <span className="font-medium text-foreground">
+              {pagination?.total_items ?? staffs.length}
+            </span>{" "}
             {t("admin.staffsPage.staff")}
           </p>
+
+          <AdminPagination
+            page={page}
+            totalPages={pagination?.total_pages ?? 0}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </div>

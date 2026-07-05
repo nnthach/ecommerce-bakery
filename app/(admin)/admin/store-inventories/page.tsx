@@ -21,6 +21,8 @@ import {
 import { StoreInventoryRaw, StoreItem } from "@/types";
 import { useI18n } from "@/context/I18nContext";
 import Image from "next/image";
+import AdminPagination from "@/components/custom/AdminPagination";
+import { usePagination } from "@/hooks/usePagination";
 
 const STATUS_OPTIONS = [
   { label: "Tất cả", value: "" },
@@ -38,16 +40,28 @@ const ORDER_OPTIONS = [
   { label: "Tăng dần", value: "asc" },
 ];
 
+const DEFAULT_LIMIT = 8;
+
+const LIMIT_OPTIONS = [
+  { label: `${DEFAULT_LIMIT}`, value: String(DEFAULT_LIMIT) },
+  { label: "10", value: "10" },
+  { label: "15", value: "15" },
+  { label: "20", value: "20" },
+  { label: "50", value: "50" },
+];
+
 interface FilterState {
   is_active: boolean | undefined;
   sort_by: "name" | "created_at";
   order: "asc" | "desc";
+  limit: number;
 }
 
 const DEFAULT_FILTER: FilterState = {
   is_active: undefined,
   sort_by: "created_at",
   order: "desc",
+  limit: DEFAULT_LIMIT,
 };
 
 export default function AdminStoreInventoryPage() {
@@ -56,6 +70,8 @@ export default function AdminStoreInventoryPage() {
   const [appliedFilter, setAppliedFilter] =
     useState<FilterState>(DEFAULT_FILTER);
   const [tempFilter, setTempFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const { page, setPage, pagination, setPagination, resetPage } =
+    usePagination();
 
   const [storeOptions, setStoreOptions] = useState<StoreItem[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState("");
@@ -68,7 +84,7 @@ export default function AdminStoreInventoryPage() {
     const fetchStores = async () => {
       try {
         setIsLoadingStores(true);
-        const res = await fetch("/api/admin/stores?is_active=true");
+        const res = await fetch("/api/admin/stores?is_active=true&limit=100");
         if (!res.ok) throw new Error("Failed to fetch stores");
         const data = await res.json();
         if (data.success && data.data) {
@@ -87,33 +103,46 @@ export default function AdminStoreInventoryPage() {
     fetchStores();
   }, []);
 
-  const fetchStoreInventory = useCallback(async (storeId: string) => {
-    if (!storeId) return;
+  const fetchStoreInventory = useCallback(
+    async (
+      storeId: string,
+      filter: FilterState = appliedFilter,
+      pageNum: number = page,
+    ) => {
+      if (!storeId) return;
 
-    try {
-      setIsLoading(true);
+      try {
+        setIsLoading(true);
 
-      // get param
-      const params = new URLSearchParams();
-      params.set("store_id", storeId);
+        // get param
+        const params = new URLSearchParams();
+        params.set("store_id", storeId);
+        if (filter.is_active !== undefined) {
+          params.set("is_active", String(filter.is_active));
+        }
+        params.set("page", String(pageNum));
+        params.set("limit", String(filter.limit));
 
-      // call api
-      const res = await fetch(
-        `/api/admin/store-inventories?${params.toString()}`,
-      );
-      if (!res.ok) throw new Error("Failed to fetch store inventories");
-      const data = await res.json();
+        // call api
+        const res = await fetch(
+          `/api/admin/store-inventories?${params.toString()}`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch store inventories");
+        const data = await res.json();
 
-      // check
-      if (data.success && data.data) {
-        setStoreInventories(data.data);
+        // check
+        if (data.success && data.data) {
+          setStoreInventories(data.data);
+          setPagination(data.pagination ?? null);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [appliedFilter, page],
+  );
 
   // only fetch inventory once a store_id is available; refetch when it changes
   useEffect(() => {
@@ -121,31 +150,41 @@ export default function AdminStoreInventoryPage() {
     fetchStoreInventory(selectedStoreId);
   }, [selectedStoreId, fetchStoreInventory]);
 
+  // reset to page 1 whenever the selected store changes
+  useEffect(() => {
+    resetPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStoreId]);
+
   // apply filter
   const handleApply = () => {
     setAppliedFilter(tempFilter);
-    fetchStoreInventory(selectedStoreId);
+    resetPage();
+    fetchStoreInventory(selectedStoreId, tempFilter, 1);
   };
 
   // clear filter
   const handleClearFilter = () => {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
-    fetchStoreInventory(selectedStoreId);
+    resetPage();
+    fetchStoreInventory(selectedStoreId, DEFAULT_FILTER, 1);
   };
 
   //check filter
   const isFilterActive =
     appliedFilter.is_active !== undefined ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
-    appliedFilter.order !== DEFAULT_FILTER.order;
+    appliedFilter.order !== DEFAULT_FILTER.order ||
+    appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
     (appliedFilter.is_active !== undefined ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
-      : 0);
+      : 0) +
+    (appliedFilter.limit !== DEFAULT_FILTER.limit ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -248,6 +287,29 @@ export default function AdminStoreInventoryPage() {
                       }
                     >
                       {ORDER_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Limit per page */}
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium leading-none">
+                      Số dòng mỗi trang
+                    </p>
+                    <select
+                      className="border rounded-md h-9 px-2 w-full text-sm"
+                      value={String(tempFilter.limit)}
+                      onChange={(e) =>
+                        setTempFilter((prev) => ({
+                          ...prev,
+                          limit: parseInt(e.target.value, 10),
+                        }))
+                      }
+                    >
+                      {LIMIT_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -414,13 +476,23 @@ export default function AdminStoreInventoryPage() {
         </Table>
 
         {/* Footer count */}
-        <div className="border-t px-6 py-3">
+        <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {t("admin.storeInventoriesPage.showing")}{" "}
             <span className="font-medium text-foreground">
               {stores.length}
             </span>{" "}
+            {t("admin.table.pagination.of")}{" "}
+            <span className="font-medium text-foreground">
+              {pagination?.total_items ?? stores.length}
+            </span>
           </p>
+
+          <AdminPagination
+            page={page}
+            totalPages={pagination?.total_pages ?? 0}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </div>

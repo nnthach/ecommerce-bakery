@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { getSearchParams } from "@/lib/utils";
 import { ProductIngredientRow, RawProduct } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -11,17 +12,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const params = req.nextUrl.searchParams;
-    const is_active = params.get("is_active");
-    const category_id = params.get("category_id");
-    const sort_by = params.get("sort_by") ?? "created_at";
-    const order = params.get("order") ?? "desc";
-    const locale = params.get("locale") ?? "vi";
+    const { is_active, category_id, sort_by, order, locale, page, limit } =
+      getSearchParams(req);
 
     const validSortBy = ["name", "created_at"].includes(sort_by)
       ? sort_by
       : "created_at";
     const ascending = order === "asc";
+
+    // parse page/limit & pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+    const from = (pageNum - 1) * limitNum;
+    const to = from + limitNum - 1;
 
     let query = supabase
       .from("products")
@@ -34,9 +37,11 @@ export async function GET(req: NextRequest) {
           ingredients(id, name)
         )
       `,
+        { count: "exact" }, // tổng số dòng theo params, ko tính pagination
       )
       .eq("product_translations.locale", locale)
-      .order(validSortBy, { ascending });
+      .order(validSortBy, { ascending })
+      .range(from, to); // add pagination
 
     if (is_active !== null && is_active !== "") {
       query = query.eq("is_active", is_active === "true");
@@ -46,7 +51,7 @@ export async function GET(req: NextRequest) {
       query = query.eq("category_id", category_id);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
 
     // product format
@@ -70,8 +75,20 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // total page
+    const totalPages = count ? Math.ceil(count / limitNum) : 0;
+
     return NextResponse.json(
-      { success: true, data: formatted },
+      {
+        success: true,
+        data: formatted,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total_items: count ?? 0,
+          total_pages: totalPages,
+        },
+      },
       { status: 200 },
     );
   } catch (error) {

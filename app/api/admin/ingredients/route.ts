@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
+import { getSearchParams } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -9,30 +10,48 @@ export async function GET(req: NextRequest) {
         { status: 500 },
       );
     }
-
-    const params = req.nextUrl.searchParams;
-    const is_active = params.get("is_active");
-    const sort_by = params.get("sort_by") ?? "created_at";
-    const order = params.get("order") ?? "desc";
+    const { is_active, sort_by, order, page, limit } = getSearchParams(req);
 
     const validSortBy = ["name", "created_at"].includes(sort_by)
       ? sort_by
       : "created_at";
     const ascending = order === "asc";
 
+    // parse page/limit & pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+    const from = (pageNum - 1) * limitNum;
+    const to = from + limitNum - 1;
+
     let query = supabaseAdmin
       .from("ingredients")
-      .select("*")
-      .order(validSortBy, { ascending });
+      .select("*", { count: "exact" })
+      .order(validSortBy, { ascending })
+      .range(from, to);
 
     if (is_active !== null && is_active !== "") {
       query = query.eq("is_active", is_active === "true");
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data }, { status: 200 });
+    // total page
+    const totalPages = count ? Math.ceil(count / limitNum) : 0;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total_items: count ?? 0,
+          total_pages: totalPages,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Fetch ingredients error:", error);
     return NextResponse.json(

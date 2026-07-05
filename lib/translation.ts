@@ -165,6 +165,10 @@ export const translations = {
         pastry: "Pastry",
         empty: "No items found in this category.",
       },
+      pagination: {
+        previous: "Previous",
+        next: "Next",
+      },
     },
     // product detail
     productDetailPage: {
@@ -314,6 +318,12 @@ export const translations = {
           status: "Status",
           createdAt: "Created At",
           actions: "Actions",
+        },
+        pagination: {
+          showing: "Showing",
+          of: "of",
+          previous: "Previous",
+          next: "Next",
         },
       },
       // shared modal strings
@@ -583,6 +593,8 @@ export const translations = {
         empty: "No staff found",
         showing: "Showing",
         staff: "staff",
+        searchPlaceholder: "Search name or email...",
+        clearSearch: "Clear search",
         deleteConfirm: "Are you sure you want to delete this staff member?",
         createModal: {
           trigger: "Add Staff",
@@ -876,6 +888,10 @@ export const translations = {
         pastry: "Bánh ngọt",
         empty: "Không có sản phẩm nào trong danh mục này.",
       },
+      pagination: {
+        previous: "Trước",
+        next: "Sau",
+      },
     },
 
     // product detail
@@ -1026,6 +1042,12 @@ export const translations = {
           status: "Trạng thái",
           createdAt: "Ngày tạo",
           actions: "Thao tác",
+        },
+        pagination: {
+          showing: "Hiển thị",
+          of: "trên",
+          previous: "Trước",
+          next: "Sau",
         },
       },
       // shared modal strings
@@ -1296,6 +1318,8 @@ export const translations = {
         empty: "Không tìm thấy nhân viên nào",
         showing: "Hiển thị",
         staff: "nhân viên",
+        searchPlaceholder: "Tìm theo tên hoặc email...",
+        clearSearch: "Xóa tìm kiếm",
         deleteConfirm: "Bạn có chắc muốn xóa nhân viên này không?",
         createModal: {
           trigger: "Thêm nhân viên",

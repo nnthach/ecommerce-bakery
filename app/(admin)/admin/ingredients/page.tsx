@@ -22,6 +22,8 @@ import { IngredientItem } from "@/types";
 import { useI18n } from "@/context/I18nContext";
 import CreateIngredientModal from "@/components/sections/admin/ingredients/CreateIngredientModal";
 import UpdateIngredientModal from "@/components/sections/admin/ingredients/UpdateIngredientModal";
+import AdminPagination from "@/components/custom/AdminPagination";
+import { usePagination } from "@/hooks/usePagination";
 
 const STATUS_OPTIONS = [
   { label: "Tất cả", value: "" },
@@ -39,16 +41,28 @@ const ORDER_OPTIONS = [
   { label: "Tăng dần", value: "asc" },
 ];
 
+const DEFAULT_LIMIT = 8;
+
+const LIMIT_OPTIONS = [
+  { label: `${DEFAULT_LIMIT}`, value: String(DEFAULT_LIMIT) },
+  { label: "10", value: "10" },
+  { label: "15", value: "15" },
+  { label: "20", value: "20" },
+  { label: "50", value: "50" },
+];
+
 interface FilterState {
   is_active: boolean | undefined;
   sort_by: "name" | "created_at";
   order: "asc" | "desc";
+  limit: number;
 }
 
 const DEFAULT_FILTER: FilterState = {
   is_active: undefined,
   sort_by: "created_at",
   order: "desc",
+  limit: DEFAULT_LIMIT,
 };
 
 export default function AdminIngredientPage() {
@@ -59,9 +73,11 @@ export default function AdminIngredientPage() {
   const [tempFilter, setTempFilter] = useState<FilterState>(DEFAULT_FILTER);
 
   const { t, locale } = useI18n();
+  const { page, setPage, pagination, setPagination, resetPage } =
+    usePagination();
 
   const fetchIngredients = useCallback(
-    async (filter: FilterState = appliedFilter) => {
+    async (filter: FilterState = appliedFilter, pageNum: number = page) => {
       try {
         setIsLoading(true);
 
@@ -72,6 +88,8 @@ export default function AdminIngredientPage() {
         }
         params.set("sort_by", filter.sort_by);
         params.set("order", filter.order);
+        params.set("page", String(pageNum));
+        params.set("limit", String(filter.limit));
 
         // call api
         const res = await fetch(`/api/admin/ingredients?${params.toString()}`);
@@ -81,6 +99,7 @@ export default function AdminIngredientPage() {
         // check
         if (data.success && data.data) {
           setIngredients(data.data);
+          setPagination(data.pagination ?? null);
         }
       } catch (error) {
         console.error(error);
@@ -89,7 +108,7 @@ export default function AdminIngredientPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter],
+    [appliedFilter, page],
   );
 
   useEffect(() => {
@@ -103,7 +122,7 @@ export default function AdminIngredientPage() {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });
-      fetchIngredients(appliedFilter);
+      fetchIngredients(appliedFilter, page);
     } catch (error) {
       console.error(error);
       alert("Failed to delete");
@@ -113,28 +132,32 @@ export default function AdminIngredientPage() {
   // apply filter
   const handleApply = () => {
     setAppliedFilter(tempFilter);
-    fetchIngredients(tempFilter);
+    resetPage();
+    fetchIngredients(tempFilter, 1);
   };
 
   // clear filter
   const handleClearFilter = () => {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
-    fetchIngredients(DEFAULT_FILTER);
+    resetPage();
+    fetchIngredients(DEFAULT_FILTER, 1);
   };
 
   //check filter
   const isFilterActive =
     appliedFilter.is_active !== undefined ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
-    appliedFilter.order !== DEFAULT_FILTER.order;
+    appliedFilter.order !== DEFAULT_FILTER.order ||
+    appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
     (appliedFilter.is_active !== undefined ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
-      : 0);
+      : 0) +
+    (appliedFilter.limit !== DEFAULT_FILTER.limit ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -237,6 +260,29 @@ export default function AdminIngredientPage() {
                       }
                     >
                       {ORDER_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Limit per page */}
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium leading-none">
+                      Số dòng mỗi trang
+                    </p>
+                    <select
+                      className="border rounded-md h-9 px-2 w-full text-sm"
+                      value={String(tempFilter.limit)}
+                      onChange={(e) =>
+                        setTempFilter((prev) => ({
+                          ...prev,
+                          limit: parseInt(e.target.value, 10),
+                        }))
+                      }
+                    >
+                      {LIMIT_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -365,14 +411,24 @@ export default function AdminIngredientPage() {
         </Table>
 
         {/* Footer count */}
-        <div className="border-t px-6 py-3">
+        <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
-            {locale == "vi" ? "Hiển thị" : "Showing"}{" "}
+            {t("admin.table.pagination.showing")}{" "}
             <span className="font-medium text-foreground">
               {ingredients.length}
             </span>{" "}
+            {t("admin.table.pagination.of")}{" "}
+            <span className="font-medium text-foreground">
+              {pagination?.total_items ?? ingredients.length}
+            </span>{" "}
             {locale == "vi" ? "nguyên liệu" : "ingredients"}
           </p>
+
+          <AdminPagination
+            page={page}
+            totalPages={pagination?.total_pages ?? 0}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </div>

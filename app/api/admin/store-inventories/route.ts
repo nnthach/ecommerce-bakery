@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
+import { getSearchParams } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -10,8 +11,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const params = req.nextUrl.searchParams;
-    const store_id = params.get("store_id");
+    const { store_id, is_active, page, limit } = getSearchParams(req);
 
     if (!store_id) {
       return NextResponse.json(
@@ -20,12 +20,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { data, error } = await supabaseAdmin
+    // parse page/limit & pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+    const from = (pageNum - 1) * limitNum;
+    const to = from + limitNum - 1;
+
+    let query = supabaseAdmin
       .from("store_inventories")
       .select(
         `
         *,
-        products(
+        products!inner(
           id,
           price,
           image_url,
@@ -38,13 +44,35 @@ export async function GET(req: NextRequest) {
           users(id, full_name)
         )
       `,
+        { count: "exact" },
       )
       .eq("store_id", store_id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
+    if (is_active !== null && is_active !== "") {
+      query = query.eq("products.is_active", is_active === "true");
+    }
+
+    const { data, error, count } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data: data }, { status: 200 });
+    // total page
+    const totalPages = count ? Math.ceil(count / limitNum) : 0;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total_items: count ?? 0,
+          total_pages: totalPages,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Fetch store inventory error:", error);
     return NextResponse.json(

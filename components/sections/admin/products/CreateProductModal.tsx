@@ -106,7 +106,9 @@ export default function CreateProductModal({
       setLoadingMeta(true);
       try {
         const [catRes, ingRes] = await Promise.all([
-          fetch("/api/admin/categories?is_active=true&sort_by=name&order=asc"),
+          fetch(
+            "/api/admin/categories?is_active=true&sort_by=name&order=asc&limit=100",
+          ),
           fetch("/api/admin/ingredients?is_active=true&sort_by=name&order=asc"),
         ]);
         const catJson = await catRes.json();

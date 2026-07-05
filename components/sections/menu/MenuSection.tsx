@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { CategoryItem } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { usePagination } from "@/hooks/usePagination";
 
 interface FetchedProduct {
   id: string;
@@ -17,9 +19,13 @@ interface FetchedProduct {
   category: { id: string; name: { en: string; vi: string } } | null;
 }
 
+const PRODUCTS_PER_PAGE = 12;
+
 export default function MenuSection() {
   const { t, locale } = useI18n();
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const { page, setPage, pagination, setPagination, resetPage } =
+    usePagination();
   const [products, setProducts] = useState<FetchedProduct[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,13 +44,15 @@ export default function MenuSection() {
   }, []);
 
   const fetchProducts = useCallback(
-    async (categoryId: string) => {
+    async (categoryId: string, pageNum: number) => {
       try {
         setIsLoading(true);
         const params = new URLSearchParams({
           is_active: "true",
           sort_by: "created_at",
           order: "asc",
+          limit: String(PRODUCTS_PER_PAGE),
+          page: String(pageNum),
           locale,
         });
         if (categoryId !== "all") {
@@ -55,6 +63,7 @@ export default function MenuSection() {
         const data = await res.json();
         if (data.success && data.data) {
           setProducts(data.data);
+          setPagination(data.pagination ?? null);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -70,12 +79,45 @@ export default function MenuSection() {
   }, [fetchCategories]);
 
   useEffect(() => {
-    fetchProducts(activeCategory);
-  }, [fetchProducts, activeCategory]);
+    fetchProducts(activeCategory, page);
+  }, [fetchProducts, activeCategory, page]);
 
   const handleSelectCategory = (id: string) => {
     setActiveCategory(id);
+    resetPage();
   };
+
+  // pagination
+  const handlePageChange = (nextPage: number) => {
+    if (
+      nextPage < 1 ||
+      nextPage === page ||
+      (pagination && nextPage > pagination.total_pages)
+    ) {
+      return;
+    }
+    setPage(nextPage);
+  };
+
+  const getPageNumbers = (current: number, total: number) => {
+    const pages: (number | "ellipsis")[] = [];
+    const neighbors = 1;
+
+    for (let i = 1; i <= total; i++) {
+      if (
+        i === 1 ||
+        i === total ||
+        (i >= current - neighbors && i <= current + neighbors)
+      ) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== "ellipsis") {
+        pages.push("ellipsis");
+      }
+    }
+
+    return pages;
+  };
+  // end pagination
 
   const formatPrice = (price: number) => price.toLocaleString("vi-VN") + " đ";
 
@@ -146,6 +188,60 @@ export default function MenuSection() {
               <p className="mt-12 text-center text-charcoal/50">
                 {t("menuPage.menuFilter.empty")}
               </p>
+            )}
+
+            {/*pagination */}
+            {pagination && pagination.total_pages > 1 && (
+              <nav
+                aria-label="pagination"
+                className="mt-14 flex items-center justify-center gap-2"
+              >
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  aria-label={t("menuPage.pagination.previous")}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-charcoal/15 bg-white text-charcoal/60 transition hover:border-amber/50 hover:text-charcoal disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                {getPageNumbers(page, pagination.total_pages).map((item, i) =>
+                  item === "ellipsis" ? (
+                    <span
+                      key={`ellipsis-${i}`}
+                      className="px-1 text-sm text-charcoal/40"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => handlePageChange(item)}
+                      aria-current={item === page ? "page" : undefined}
+                      className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold transition",
+                        item === page
+                          ? "border-amber bg-amber text-white shadow-sm"
+                          : "border-charcoal/15 bg-white text-charcoal/60 hover:border-amber/50 hover:text-charcoal",
+                      )}
+                    >
+                      {item}
+                    </button>
+                  ),
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === pagination.total_pages}
+                  aria-label={t("menuPage.pagination.next")}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-charcoal/15 bg-white text-charcoal/60 transition hover:border-amber/50 hover:text-charcoal disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </nav>
             )}
           </>
         )}

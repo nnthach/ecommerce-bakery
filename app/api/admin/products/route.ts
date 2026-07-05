@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
+import { getSearchParams } from "@/lib/utils";
 import { ProductIngredientRow, RawProduct } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -11,21 +12,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // get params
-    const params = req.nextUrl.searchParams;
-    const is_active = params.get("is_active");
-    const category_id = params.get("category_id");
-    const sort_by = params.get("sort_by") ?? "created_at";
-    const order = params.get("order") ?? "desc";
-    const locale = params.get("locale") ?? "vi";
+    // get params input
+    const { is_active, order, category_id, locale, page, limit, search } =
+      getSearchParams(req);
 
-    // validate params
-    const validSortBy = ["name", "created_at"].includes(sort_by)
-      ? sort_by
-      : "created_at";
     const ascending = order === "asc";
 
-    // query 
+    // parse page/limit & pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+    const from = (pageNum - 1) * limitNum;
+    const to = from + limitNum - 1;
+
+    // query
     let query = supabaseAdmin
       .from("products")
       .select(
@@ -37,10 +36,13 @@ export async function GET(req: NextRequest) {
           ingredients(id, name)
         )
       `,
+        { count: "exact" },
       )
       .eq("product_translations.locale", locale)
-      .order(validSortBy, { ascending });
+      .order("created_at", { ascending })
+      .range(from, to);
 
+    // add params to query
     if (is_active !== null && is_active !== "") {
       query = query.eq("is_active", is_active === "true");
     }
@@ -49,8 +51,15 @@ export async function GET(req: NextRequest) {
       query = query.eq("category_id", category_id);
     }
 
-    const { data, error } = await query;
+    if (search) {
+      query = query.ilike("product_translations.name", `%${search}%`);
+    }
+
+    const { data, error, count } = await query;
     if (error) throw error;
+
+    // total page
+    const totalPages = count ? Math.ceil(count / limitNum) : 0;
 
     // product format
     const formatted = data.map((product: RawProduct) => {
@@ -74,7 +83,16 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { success: true, data: formatted },
+      {
+        success: true,
+        data: formatted,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total_items: count ?? 0,
+          total_pages: totalPages,
+        },
+      },
       { status: 200 },
     );
   } catch (error) {

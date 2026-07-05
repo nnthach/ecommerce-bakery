@@ -57,7 +57,7 @@ export default function UpdateStaffModal({
     const fetchStores = async () => {
       try {
         setIsLoadingStores(true);
-        const res = await fetch("/api/admin/stores?is_active=true");
+        const res = await fetch("/api/admin/stores?is_active=true&limit=100");
         if (!res.ok) throw new Error("Failed to fetch stores");
         const data = await res.json();
         if (data.success && data.data) {

@@ -28,6 +28,8 @@ export default function BestsellerSection() {
       setIsLoading(true);
       const params = new URLSearchParams({
         is_active: "true",
+        limit: "6",
+        pageNumber: "1",
         locale,
       });
       const res = await fetch(`/api/products?${params.toString()}`);
