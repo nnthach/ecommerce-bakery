@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StoreItem } from "@/types";
+import { StoreItem, StoreTypeEnum } from "@/types";
 import { useI18n } from "@/context/I18nContext";
 import CreateStoreModal from "@/components/sections/admin/stores/CreateStoreModal";
 import UpdateStoreModal from "@/components/sections/admin/stores/UpdateStoreModal";
@@ -41,6 +41,12 @@ const STATUS_OPTIONS = [
   { label: "Tất cả", value: "" },
   { label: "Đang hoạt động", value: "true" },
   { label: "Không hoạt động", value: "false" },
+];
+
+const TYPE_OPTIONS = [
+  { label: "Tất cả", value: "" },
+  { label: "Online", value: "online" },
+  { label: "Offline", value: "offline" },
 ];
 
 const SORT_BY_OPTIONS = [
@@ -65,6 +71,7 @@ const LIMIT_OPTIONS = [
 
 interface FilterState {
   is_active: boolean | undefined;
+  type: StoreTypeEnum | undefined;
   sort_by: "name" | "created_at";
   order: "asc" | "desc";
   limit: number;
@@ -72,6 +79,7 @@ interface FilterState {
 
 const DEFAULT_FILTER: FilterState = {
   is_active: undefined,
+  type: undefined,
   sort_by: "created_at",
   order: "desc",
   limit: DEFAULT_LIMIT,
@@ -100,6 +108,9 @@ export default function AdminStorePage() {
         const params = new URLSearchParams();
         if (filter.is_active !== undefined) {
           params.set("is_active", String(filter.is_active));
+        }
+        if (filter.type) {
+          params.set("type", filter.type);
         }
         params.set("sort_by", filter.sort_by);
         params.set("order", filter.order);
@@ -206,12 +217,14 @@ export default function AdminStorePage() {
   //check filter
   const isFilterActive =
     appliedFilter.is_active !== undefined ||
+    appliedFilter.type !== undefined ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order ||
     appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
     (appliedFilter.is_active !== undefined ? 1 : 0) +
+    (appliedFilter.type !== undefined ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
@@ -275,6 +288,28 @@ export default function AdminStorePage() {
                       }}
                     >
                       {STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Type filter */}
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium leading-none">Loại</p>
+                    <select
+                      className="border rounded-md h-9 px-2 w-full text-sm"
+                      value={tempFilter.type ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setTempFilter((prev) => ({
+                          ...prev,
+                          type: v === "" ? undefined : (v as StoreTypeEnum),
+                        }));
+                      }}
+                    >
+                      {TYPE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -408,6 +443,7 @@ export default function AdminStorePage() {
                 {t("admin.storesPage.table.columns.address")}
               </TableHead>
               <TableHead>{t("admin.storesPage.table.columns.phone")}</TableHead>
+              <TableHead>{t("admin.storesPage.table.columns.type")}</TableHead>
               <TableHead>{t("admin.table.columns.status")}</TableHead>
               <TableHead>{t("admin.table.columns.createdAt")}</TableHead>
               <TableHead className="text-right">
@@ -419,7 +455,7 @@ export default function AdminStorePage() {
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -428,7 +464,7 @@ export default function AdminStorePage() {
             ) : stores.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -462,6 +498,11 @@ export default function AdminStorePage() {
                     {store.address[locale]}
                   </TableCell>
                   <TableCell className="font-medium">{store.phone}</TableCell>
+                  <TableCell>
+                    <Badge variant={store.type === "online" ? "secondary" : "outline"}>
+                      {store.type === "online" ? "Online" : "Offline"}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     {store.deleted_at ? (
                       <Badge variant="destructive">

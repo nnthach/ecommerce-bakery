@@ -30,6 +30,7 @@ function toFormState(store: StoreItem): StoreFormData {
     city: store.city ?? "",
     district: store.district ?? "",
     phone: store.phone ?? "",
+    type: store.type,
   };
 }
 
@@ -278,6 +279,20 @@ export default function UpdateStoreModal({
               placeholder="Ví dụ: 0901234567"
               disabled={isSubmitting}
               {...register("phone")}
+            />
+
+            {/* Type */}
+            <InputFormField
+              label={t("admin.storesPage.updateModal.fields.type")}
+              type="select"
+              error={errors.type?.message}
+              disabled={isSubmitting}
+              required
+              selectData={[
+                { value: "offline", label: "Offline" },
+                { value: "online", label: "Online" },
+              ]}
+              {...register("type")}
             />
           </div>
 

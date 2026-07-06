@@ -17,6 +17,9 @@ export const createStoreSchema = (
     city: z.string(),
     district: z.string(),
     phone: z.string(),
+    type: z.enum(["online", "offline"], {
+      message: t(`admin.storesPage.${namespace}.errors.typeRequired`),
+    }),
   });
 
 export type StoreFormData = z.infer<ReturnType<typeof createStoreSchema>>;

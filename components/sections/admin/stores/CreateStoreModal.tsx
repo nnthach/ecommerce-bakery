@@ -28,6 +28,7 @@ const INITIAL_FORM: StoreFormData = {
   city: "",
   district: "",
   phone: "",
+  type: "offline",
 };
 
 interface CreateStoreModalProps {
@@ -254,6 +255,20 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
               placeholder="Ví dụ: 0901234567"
               disabled={isSubmitting}
               {...register("phone")}
+            />
+
+            {/* Type */}
+            <InputFormField
+              label={t("admin.storesPage.createModal.fields.type")}
+              type="select"
+              error={errors.type?.message}
+              disabled={isSubmitting}
+              required
+              selectData={[
+                { value: "offline", label: "Offline" },
+                { value: "online", label: "Online" },
+              ]}
+              {...register("type")}
             />
           </div>
 

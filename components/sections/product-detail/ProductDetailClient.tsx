@@ -11,6 +11,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
+import { useCart } from "@/context/CartContext";
 
 export default function ProductDetailClient({
   params,
@@ -18,9 +19,11 @@ export default function ProductDetailClient({
   params: { slug: string };
 }) {
   const { t, locale } = useI18n();
+  const { addItem } = useCart();
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<BakeryProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
   const [notFoundError, setNotFoundError] = useState(false);
 
   const fetchProduct = useCallback(async () => {
@@ -176,11 +179,19 @@ export default function ProductDetailClient({
           )}
 
           <div className="mt-10">
-            <Link href="/#contact">
-              <Button variant="accent" size="lg" className="font-semibold">
-                {t("button.orderNow")}
-              </Button>
-            </Link>
+            <Button
+              variant="accent"
+              size="lg"
+              className="font-semibold"
+              disabled={isAdding}
+              onClick={async () => {
+                setIsAdding(true);
+                await addItem(product.id);
+                setIsAdding(false);
+              }}
+            >
+              {t("button.addToCart")}
+            </Button>
           </div>
         </div>
       </section>

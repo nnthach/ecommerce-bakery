@@ -78,11 +78,19 @@ export async function PUT(
       image_url,
       phone,
       is_active,
+      type,
     } = body;
 
     if (!name || !address_vi || !address_en) {
       return NextResponse.json(
         { success: false, error: "Name and address are required" },
+        { status: 400 },
+      );
+    }
+
+    if (type !== "online" && type !== "offline") {
+      return NextResponse.json(
+        { success: false, error: "Type must be either online or offline" },
         { status: 400 },
       );
     }
@@ -98,6 +106,7 @@ export async function PUT(
         image_url,
         phone,
         is_active,
+        type,
       })
       .eq("id", id)
       .is("deleted_at", null)

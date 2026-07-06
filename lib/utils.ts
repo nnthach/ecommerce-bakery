@@ -28,6 +28,7 @@ export function getSearchParams(req: NextRequest) {
     store_id: params.get("store_id"),
     city: params.get("city"),
     district: params.get("district"),
+    type: params.get("type"),
     sort_by: params.get("sort_by") ?? "created_at",
     order: params.get("order") ?? "desc",
     locale: params.get("locale") ?? "vi",

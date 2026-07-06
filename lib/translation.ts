@@ -15,6 +15,15 @@ export const translations = {
       profile: "Profile",
       signOut: "Sign Out",
     },
+    cart: {
+      iconLabel: "Cart",
+      title: "Your Cart",
+      empty: "Your cart is empty",
+      loading: "Loading cart...",
+      signInRequired: "Sign in to view your cart",
+      subtotal: "Subtotal",
+      checkout: "Checkout",
+    },
     // auth pages
     authPage: {
       signinPage: {
@@ -213,6 +222,7 @@ export const translations = {
     // button
     button: {
       orderNow: "Order Now",
+      addToCart: "Add to Cart",
       exploreMenu: "Explore Menu",
       visitOurBakery: "Visit Our Bakery",
       viewDetail: "View Detail",
@@ -479,6 +489,7 @@ export const translations = {
             address: "Address",
             phone: "Phone",
             image: "Image",
+            type: "Type",
           },
         },
         createModal: {
@@ -492,11 +503,13 @@ export const translations = {
             city: "City",
             district: "District",
             phone: "Phone",
+            type: "Type",
           },
           errors: {
             nameRequired: "Store name is required.",
             addressViRequired: "Address (VI) is required.",
             addressEnRequired: "Address (EN) is required.",
+            typeRequired: "Type is required.",
           },
         },
         updateModal: {
@@ -509,6 +522,7 @@ export const translations = {
             city: "City",
             district: "District",
             phone: "Phone",
+            type: "Type",
             status: "Status",
             statusActive: "Active",
             statusInactive: "Inactive",
@@ -517,6 +531,7 @@ export const translations = {
             nameRequired: "Store name is required.",
             addressViRequired: "Address (VI) is required.",
             addressEnRequired: "Address (EN) is required.",
+            typeRequired: "Type is required.",
           },
         },
       },
@@ -737,6 +752,15 @@ export const translations = {
       profile: "Hồ sơ",
       signOut: "Đăng xuất",
     },
+    cart: {
+      iconLabel: "Giỏ hàng",
+      title: "Giỏ hàng",
+      empty: "Giỏ hàng của bạn đang trống",
+      loading: "Đang tải giỏ hàng...",
+      signInRequired: "Đăng nhập để xem giỏ hàng",
+      subtotal: "Tạm tính",
+      checkout: "Thanh toán",
+    },
     // auth pages
     authPage: {
       signinPage: {
@@ -937,6 +961,7 @@ export const translations = {
     // button
     button: {
       orderNow: "Đặt hàng",
+      addToCart: "Thêm vào giỏ hàng",
       exploreMenu: "Khám Phá Thực Đơn",
       visitOurBakery: "Ghé Thăm Tiệm Bánh",
       viewDetail: "Chi tiết",
@@ -1203,6 +1228,7 @@ export const translations = {
             address: "Địa chỉ",
             phone: "Số điện thoại",
             image: "Hình ảnh",
+            type: "Loại",
           },
         },
         createModal: {
@@ -1217,11 +1243,13 @@ export const translations = {
             district: "Quận/Huyện",
             phone: "Số điện thoại",
             imageUrl: "Hình ảnh",
+            type: "Loại",
           },
           errors: {
             nameRequired: "Tên cửa hàng không được để trống.",
             addressViRequired: "Địa chỉ (VI) không được để trống.",
             addressEnRequired: "Địa chỉ (EN) không được để trống.",
+            typeRequired: "Loại cửa hàng không được để trống.",
           },
         },
         updateModal: {
@@ -1234,6 +1262,7 @@ export const translations = {
             city: "Thành phố",
             district: "Quận/Huyện",
             phone: "Số điện thoại",
+            type: "Loại",
             status: "Trạng thái",
             statusActive: "Hoạt động",
             statusInactive: "Không hoạt động",
@@ -1242,6 +1271,7 @@ export const translations = {
             nameRequired: "Tên cửa hàng không được để trống.",
             addressViRequired: "Địa chỉ (VI) không được để trống.",
             addressEnRequired: "Địa chỉ (EN) không được để trống.",
+            typeRequired: "Loại cửa hàng không được để trống.",
           },
         },
       },

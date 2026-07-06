@@ -23,6 +23,8 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useI18n } from "@/context/I18nContext";
 import { useAuth } from "@/context/AuthContext";
 import LanguageToggle from "../custom/LanguageToggle";
+import CartSheet from "./CartSheet";
+import CartTriggerButton from "./CartTriggerButton";
 
 function getInitials(fullName: string) {
   const parts = fullName?.trim().split(/\s+/) || "";
@@ -78,6 +80,7 @@ export default function Header() {
           </div>
         </Link>
 
+        {/* Nav links - center */}
         <nav
           className={`hidden items-center gap-8 text-sm font-medium md:flex ${
             scrolled ? "text-charcoal/70" : "text-white/80"
@@ -94,6 +97,11 @@ export default function Header() {
               {t(link.label)}
             </Link>
           ))}
+        </nav>
+
+        {/* Desktop right section: cart, language, user */}
+        <div className="hidden items-center gap-4 md:flex">
+          <CartTriggerButton scrolled={scrolled} />
 
           <LanguageToggle scrolled={scrolled} />
 
@@ -148,102 +156,109 @@ export default function Header() {
               </Button>
             </Link>
           )}
-        </nav>
+        </div>
 
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-12 w-12 p-0 md:hidden ${
-                scrolled
-                  ? "text-charcoal hover:bg-charcoal/10"
-                  : "text-white hover:bg-white/10"
-              }`}
-              aria-label="Toggle menu"
+        <CartSheet />
+
+        {/* Mobile right section: cart + menu toggle */}
+        <div className="flex items-center gap-1 md:hidden">
+          <CartTriggerButton scrolled={scrolled} />
+
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-12 w-12 p-0 ${
+                  scrolled
+                    ? "text-charcoal hover:bg-charcoal/10"
+                    : "text-white hover:bg-white/10"
+                }`}
+                aria-label="Toggle menu"
+              >
+                <Menu className="h-10 w-10" strokeWidth={2.5} />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              className="w-3/4 border-l border-charcoal/10 bg-sand text-charcoal sm:max-w-sm"
             >
-              <Menu className="h-10 w-10" strokeWidth={2.5} />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="right"
-            className="w-3/4 border-l border-charcoal/10 bg-sand text-charcoal sm:max-w-sm"
-          >
-            <SheetTitle className="text-left text-lg font-bold text-charcoal">
-              Petit Bakery
-            </SheetTitle>
-            <div className="mt-6 flex">
-              <LanguageToggle scrolled={scrolled} variant="dark" />
-            </div>
-            <nav className="mt-6 flex flex-col gap-6 text-base font-medium text-charcoal/70">
-              {NAV_LINKS.map((link) => (
-                <SheetClose asChild key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="transition hover:text-charcoal"
-                  >
-                    {t(link.label)}
-                  </Link>
-                </SheetClose>
-              ))}
-
-              {user ? (
-                <div className="flex flex-col gap-3 border-t border-charcoal/10 pt-6">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 border border-amber/40">
-                      <AvatarFallback className="bg-amber text-xs font-semibold text-white">
-                        {getInitials(user.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-semibold text-charcoal">
-                        {user.full_name}
-                      </p>
-                      <p className="text-xs capitalize text-charcoal/50">
-                        {user.role}
-                      </p>
-                    </div>
-                  </div>
-                  {dashboardHref && (
-                    <SheetClose asChild>
-                      <Link
-                        href={dashboardHref}
-                        className="text-sm font-medium transition hover:text-charcoal"
-                      >
-                        {t("headerDropdown.dashboard")}
-                      </Link>
-                    </SheetClose>
-                  )}
-                  <SheetClose asChild>
+              <SheetTitle className="text-left text-lg font-bold text-charcoal">
+                Petit Bakery
+              </SheetTitle>
+              <div className="mt-6 flex">
+                <LanguageToggle scrolled={scrolled} variant="dark" />
+              </div>
+              <nav className="mt-6 flex flex-col gap-6 text-base font-medium text-charcoal/70">
+                {NAV_LINKS.map((link) => (
+                  <SheetClose asChild key={link.href}>
                     <Link
-                      href="/profile"
-                      className="text-sm font-medium transition hover:text-charcoal"
+                      href={link.href}
+                      className="transition hover:text-charcoal"
                     >
-                      {t("headerDropdown.profile")}
+                      {t(link.label)}
                     </Link>
                   </SheetClose>
+                ))}
+
+                {user ? (
+                  <div className="flex flex-col gap-3 border-t border-charcoal/10 pt-6">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9 border border-amber/40">
+                        <AvatarFallback className="bg-amber text-xs font-semibold text-white">
+                          {getInitials(user.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-semibold text-charcoal">
+                          {user.full_name}
+                        </p>
+                        <p className="text-xs capitalize text-charcoal/50">
+                          {user.role}
+                        </p>
+                      </div>
+                    </div>
+                    {dashboardHref && (
+                      <SheetClose asChild>
+                        <Link
+                          href={dashboardHref}
+                          className="text-sm font-medium transition hover:text-charcoal"
+                        >
+                          {t("headerDropdown.dashboard")}
+                        </Link>
+                      </SheetClose>
+                    )}
+                    <SheetClose asChild>
+                      <Link
+                        href="/profile"
+                        className="text-sm font-medium transition hover:text-charcoal"
+                      >
+                        {t("headerDropdown.profile")}
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button
+                        variant="outline"
+                        className="font-semibold"
+                        onClick={logout}
+                      >
+                        {t("headerDropdown.signOut")}
+                      </Button>
+                    </SheetClose>
+                  </div>
+                ) : (
                   <SheetClose asChild>
-                    <Button
-                      variant="outline"
-                      className="font-semibold"
-                      onClick={logout}
-                    >
-                      {t("headerDropdown.signOut")}
-                    </Button>
+                    <Link href={"/signin"}>
+                      <Button variant="accent" className="font-semibold">
+                        {t("headerButton.signin")}
+                      </Button>
+                    </Link>
                   </SheetClose>
-                </div>
-              ) : (
-                <SheetClose asChild>
-                  <Link href={"/signin"}>
-                    <Button variant="accent" className="font-semibold">
-                      {t("headerButton.signin")}
-                    </Button>
-                  </Link>
-                </SheetClose>
-              )}
-            </nav>
-          </SheetContent>
-        </Sheet>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );

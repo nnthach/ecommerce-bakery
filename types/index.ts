@@ -112,6 +112,8 @@ export interface ProductItem {
   updated_at: string | null;
 }
 
+export type StoreTypeEnum = "online" | "offline";
+
 export interface StoreItem {
   id: string;
   name: string;
@@ -125,6 +127,7 @@ export interface StoreItem {
   image_url: string;
   phone: string;
   is_active: boolean;
+  type: StoreTypeEnum;
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;
@@ -161,6 +164,26 @@ export type StoreInventoryItemStatusEnum =
   | "out_of_stock"
   | "low_stock"
   | null;
+
+export interface CartItemProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  image_url: string[];
+}
+
+export interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  product: CartItemProduct;
+}
+
+export interface CartData {
+  id: string | null;
+  items: CartItem[];
+}
 
 export interface StoreInventoryRaw {
   id: string;

@@ -11,8 +11,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { is_active, city, district, sort_by, order, search, page, limit } =
-      getSearchParams(req);
+    const {
+      is_active,
+      city,
+      district,
+      type,
+      sort_by,
+      order,
+      search,
+      page,
+      limit,
+    } = getSearchParams(req);
 
     const validSortBy = ["name", "created_at"].includes(sort_by)
       ? sort_by
@@ -39,6 +48,9 @@ export async function GET(req: NextRequest) {
     }
     if (district) {
       query = query.eq("district", district);
+    }
+    if (type === "online" || type === "offline") {
+      query = query.eq("type", type);
     }
     if (search) {
       query = query.ilike("name", `%${search}%`);
@@ -91,11 +103,19 @@ export async function POST(req: NextRequest) {
       slug,
       image_url,
       phone,
+      type,
     } = body;
 
     if (!name || !address_vi || !address_en) {
       return NextResponse.json(
         { success: false, error: "Name and address are required" },
+        { status: 400 },
+      );
+    }
+
+    if (type !== "online" && type !== "offline") {
+      return NextResponse.json(
+        { success: false, error: "Type must be either online or offline" },
         { status: 400 },
       );
     }
@@ -110,6 +130,7 @@ export async function POST(req: NextRequest) {
         slug,
         image_url,
         phone,
+        type,
       })
       .select()
       .single();
