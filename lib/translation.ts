@@ -178,6 +178,11 @@ export const translations = {
         previous: "Previous",
         next: "Next",
       },
+      productStatus: {
+        available: "Available",
+        low_stock: "Low Stock",
+        out_of_stock: "Out of Stock",
+      },
     },
     // product detail
     productDetailPage: {
@@ -915,6 +920,11 @@ export const translations = {
       pagination: {
         previous: "Trước",
         next: "Sau",
+      },
+      productStatus: {
+        available: "Còn hàng",
+        low_stock: "Sắp hết hàng",
+        out_of_stock: "Hết hàng",
       },
     },
 

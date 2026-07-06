@@ -1,4 +1,4 @@
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase, supabaseAdmin } from "@/lib/supabase";
 import { ProductIngredientRow, RawProduct } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -65,6 +65,14 @@ export async function GET(
     const product = data as RawProduct;
     const trans = product.product_translations?.[0] ?? {};
 
+    // Lấy status tồn kho của store online cho sản phẩm này
+    const { data: inventory } = await supabaseAdmin
+      .from("store_inventories")
+      .select("status, stores!inner(type)")
+      .eq("product_id", product.id)
+      .eq("stores.type", "online")
+      .maybeSingle();
+
     const formatted = {
       id: product.id,
       price: product.price,
@@ -79,6 +87,7 @@ export async function GET(
       ingredients: (product.product_ingredients ?? []).map(
         (pi: ProductIngredientRow) => pi.ingredients,
       ),
+      status: inventory?.status ?? null,
     };
 
     return NextResponse.json(

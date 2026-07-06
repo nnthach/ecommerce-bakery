@@ -22,6 +22,7 @@ export interface BakeryProduct {
   name: string;
   description: string;
   price: string;
+  status?: StoreInventoryItemStatusEnum;
 }
 
 export type MenuCategoryId = "bread" | "cake" | "pastry";
@@ -110,6 +111,7 @@ export interface ProductItem {
   is_active: boolean;
   created_at: string;
   updated_at: string | null;
+  status?: StoreInventoryItemStatusEnum;
 }
 
 export type StoreTypeEnum = "online" | "offline";

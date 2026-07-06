@@ -2,7 +2,7 @@
 
 import ProductCard from "@/components/custom/ProductCard";
 import { cn } from "@/lib/utils";
-import { CategoryItem } from "@/types";
+import { CategoryItem, StoreInventoryItemStatusEnum } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,6 +17,7 @@ interface FetchedProduct {
   image_url: string[];
   is_active: boolean;
   category: { id: string; name: { en: string; vi: string } } | null;
+  status: StoreInventoryItemStatusEnum;
 }
 
 const PRODUCTS_PER_PAGE = 12;
@@ -58,7 +59,7 @@ export default function MenuSection() {
         if (categoryId !== "all") {
           params.set("category_id", categoryId);
         }
-        const res = await fetch(`/api/products?${params.toString()}`);
+        const res = await fetch(`/api/store-inventories?${params.toString()}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && data.data) {
@@ -178,6 +179,7 @@ export default function MenuSection() {
                     name: product.name,
                     description: product.description,
                     price: formatPrice(product.price),
+                    status: product.status,
                   }}
                   animation={false}
                 />

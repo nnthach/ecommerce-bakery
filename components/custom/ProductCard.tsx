@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/context/I18nContext";
 import { BakeryProduct } from "@/types";
 import { ArrowRight } from "lucide-react";
@@ -38,6 +39,14 @@ export default function ProductCard({
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        {product.status === "out_of_stock" && (
+          <Badge
+            variant="outline"
+            className="absolute left-3 top-3 border-transparent bg-charcoal/40 text-white"
+          >
+            {t("menuPage.productStatus.out_of_stock")}
+          </Badge>
+        )}
       </div>
       <div className="p-6">
         <h3 className="font-serif text-xl italic text-charcoal">

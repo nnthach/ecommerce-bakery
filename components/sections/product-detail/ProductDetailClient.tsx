@@ -4,6 +4,7 @@ import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
 import ProductCard from "@/components/custom/ProductCard";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { BakeryProduct, ProductItem } from "@/types";
 import { ChevronLeft, Wheat } from "lucide-react";
 import Image from "next/image";
@@ -108,6 +109,7 @@ export default function ProductDetailClient({
   const image = product.image_url?.[0] ?? "/images/placeholder.webp";
   const categoryName = product.category?.name?.[locale as "en" | "vi"] ?? "";
   const formattedPrice = product.price.toLocaleString("vi-VN") + " đ";
+  const isOutOfStock = product.status === "out_of_stock";
 
   return (
     <div className="bg-sand">
@@ -180,17 +182,23 @@ export default function ProductDetailClient({
 
           <div className="mt-10">
             <Button
-              variant="accent"
+              variant={isOutOfStock ? "secondary" : "accent"}
               size="lg"
-              className="font-semibold"
-              disabled={isAdding}
+              className={cn(
+                "font-semibold",
+                isOutOfStock &&
+                  "cursor-not-allowed bg-charcoal/10 text-charcoal/40 hover:bg-charcoal/10",
+              )}
+              disabled={isAdding || isOutOfStock}
               onClick={async () => {
                 setIsAdding(true);
                 await addItem(product.id);
                 setIsAdding(false);
               }}
             >
-              {t("button.addToCart")}
+              {isOutOfStock
+                ? t("menuPage.productStatus.out_of_stock")
+                : t("button.addToCart")}
             </Button>
           </div>
         </div>
