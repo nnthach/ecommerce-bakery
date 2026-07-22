@@ -40,7 +40,11 @@ const NAV_LINKS = [
   { href: "/menu", label: "headerNav.menu" },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  forceScrolled?: boolean;
+}
+
+export default function Header({ forceScrolled = false }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { t } = useI18n();
@@ -53,6 +57,8 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const isScrolled = forceScrolled || scrolled;
+
   const dashboardHref =
     user?.role === "admin"
       ? "/admin/dashboard"
@@ -63,14 +69,14 @@ export default function Header() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-300 ${
-        scrolled ? "bg-sand/90 shadow-sm backdrop-blur-md" : "bg-transparent"
+        isScrolled ? "bg-sand/90 shadow-sm backdrop-blur-md" : "bg-transparent"
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between py-4">
         <Link href={"/"}>
           <div
             className={`flex items-center gap-2 text-xl font-bold transition-colors ${
-              scrolled ? "text-charcoal" : "text-white"
+              isScrolled ? "text-charcoal" : "text-white"
             }`}
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber">
@@ -83,7 +89,7 @@ export default function Header() {
         {/* Nav links - center */}
         <nav
           className={`hidden items-center gap-8 text-sm font-medium md:flex ${
-            scrolled ? "text-charcoal/70" : "text-white/80"
+            isScrolled ? "text-charcoal/70" : "text-white/80"
           }`}
         >
           {NAV_LINKS.map((link) => (
@@ -91,7 +97,7 @@ export default function Header() {
               key={link.href}
               href={link.href}
               className={`transition ${
-                scrolled ? "hover:text-charcoal" : "hover:text-white"
+                isScrolled ? "hover:text-charcoal" : "hover:text-white"
               }`}
             >
               {t(link.label)}
@@ -101,9 +107,9 @@ export default function Header() {
 
         {/* Desktop right section: cart, language, user */}
         <div className="hidden items-center gap-4 md:flex">
-          <CartTriggerButton scrolled={scrolled} />
+          <CartTriggerButton scrolled={isScrolled} />
 
-          <LanguageToggle scrolled={scrolled} />
+          <LanguageToggle scrolled={isScrolled} />
 
           {user ? (
             <DropdownMenu>
@@ -162,7 +168,7 @@ export default function Header() {
 
         {/* Mobile right section: cart + menu toggle */}
         <div className="flex items-center gap-1 md:hidden">
-          <CartTriggerButton scrolled={scrolled} />
+          <CartTriggerButton scrolled={isScrolled} />
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -170,7 +176,7 @@ export default function Header() {
                 variant="ghost"
                 size="icon"
                 className={`h-12 w-12 p-0 ${
-                  scrolled
+                  isScrolled
                     ? "text-charcoal hover:bg-charcoal/10"
                     : "text-white hover:bg-white/10"
                 }`}

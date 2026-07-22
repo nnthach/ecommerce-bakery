@@ -127,9 +127,16 @@ export default function CartSheet() {
                 <span>{t("cart.subtotal")}</span>
                 <span>{formatPrice(totalPrice)}</span>
               </div>
-              <Button variant="accent" className="mt-3 w-full font-semibold">
-                {t("cart.checkout")}
-              </Button>
+              <SheetClose asChild>
+                <Link href="/order">
+                  <Button
+                    variant="accent"
+                    className="mt-3 w-full font-semibold"
+                  >
+                    {t("cart.checkout")}
+                  </Button>
+                </Link>
+              </SheetClose>
             </SheetFooter>
           </>
         )}
