@@ -199,3 +199,14 @@ export interface StoreInventoryRaw {
   products: ProductItem;
   staffs: StaffItem;
 }
+
+export type OrderStatusEnum =
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "shipping"
+  | "delivered"
+  | "cancelled";
+
+export type PaymentStatusEnum = "unpaid" | "paid" | "failed" | "refunded";
+export type PaymentMethodEnum = "payos" | "visa";

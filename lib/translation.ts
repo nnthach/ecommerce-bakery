@@ -301,12 +301,6 @@ export const translations = {
         visa: {
           title: "Pay with Card",
           description: "Visa, Mastercard and other debit/credit cards",
-          cardNumber: "Card Number",
-          cardNumberPlaceholder: "1234 5678 9012 3456",
-          cardExpiry: "Expiry Date",
-          cardExpiryPlaceholder: "MM/YY",
-          cardCvc: "CVC",
-          cardCvcPlaceholder: "123",
         },
         payos: {
           title: "Pay with PayOS",
@@ -337,14 +331,27 @@ export const translations = {
         districtRequired: "Please enter your district.",
         wardRequired: "Please enter your ward.",
         addressRequired: "Please enter your address detail.",
-        cardNumberRequired: "Card number is required.",
-        cardNumberInvalid: "Please enter a valid card number.",
-        cardExpiryRequired: "Expiry date is required.",
-        cardExpiryInvalid: "Please enter a valid expiry date (MM/YY).",
-        cardCvcRequired: "CVC is required.",
-        cardCvcInvalid: "Please enter a valid CVC.",
       },
-      toastSuccess: "Order placed! (UI preview only)",
+      result: {
+        success: {
+          title: "Payment successful",
+          message: "Your order has been placed and payment confirmed.",
+        },
+        fail: {
+          title: "Payment failed",
+          message:
+            "We couldn't process your payment. Please try again or use a different card.",
+        },
+        backToMenu: "Browse Menu",
+        tryAgain: "Try Again",
+        orderNumber: "Order #{id}",
+        loading: "Loading order details...",
+        items: "Items",
+        deliveryInfo: "Delivery Information",
+        store: "Store",
+      },
+      toastSuccess: "Order placed!",
+      toastError: "Failed to place order. Please try again.",
     },
 
     // admin
@@ -1122,12 +1129,6 @@ export const translations = {
         visa: {
           title: "Thanh Toán Bằng Thẻ",
           description: "Thẻ Visa, Mastercard và các thẻ ghi nợ/tín dụng khác",
-          cardNumber: "Số Thẻ",
-          cardNumberPlaceholder: "1234 5678 9012 3456",
-          cardExpiry: "Ngày Hết Hạn",
-          cardExpiryPlaceholder: "MM/YY",
-          cardCvc: "CVC",
-          cardCvcPlaceholder: "123",
         },
         payos: {
           title: "Thanh Toán Qua PayOS",
@@ -1158,14 +1159,27 @@ export const translations = {
         districtRequired: "Vui lòng nhập quận / huyện.",
         wardRequired: "Vui lòng nhập phường / xã.",
         addressRequired: "Vui lòng nhập địa chỉ cụ thể.",
-        cardNumberRequired: "Vui lòng nhập số thẻ.",
-        cardNumberInvalid: "Số thẻ không hợp lệ.",
-        cardExpiryRequired: "Vui lòng nhập ngày hết hạn.",
-        cardExpiryInvalid: "Ngày hết hạn không hợp lệ (MM/YY).",
-        cardCvcRequired: "Vui lòng nhập mã CVC.",
-        cardCvcInvalid: "Mã CVC không hợp lệ.",
       },
-      toastSuccess: "Đặt hàng thành công! (Chỉ là giao diện minh hoạ)",
+      result: {
+        success: {
+          title: "Thanh toán thành công",
+          message: "Đơn hàng của bạn đã được đặt và thanh toán thành công.",
+        },
+        fail: {
+          title: "Thanh toán thất bại",
+          message:
+            "Chúng tôi không thể xử lý thanh toán của bạn. Vui lòng thử lại hoặc dùng thẻ khác.",
+        },
+        backToMenu: "Xem Thực Đơn",
+        tryAgain: "Thử Lại",
+        orderNumber: "Đơn hàng #{id}",
+        loading: "Đang tải thông tin đơn hàng...",
+        items: "Sản Phẩm",
+        deliveryInfo: "Thông Tin Giao Hàng",
+        store: "Cửa Hàng",
+      },
+      toastSuccess: "Đặt hàng thành công!",
+      toastError: "Đặt hàng thất bại. Vui lòng thử lại.",
     },
 
     // admin

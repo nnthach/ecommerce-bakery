@@ -23,6 +23,7 @@ interface CartContextType {
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   refreshCart: () => Promise<void>;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -122,6 +123,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearCart = useCallback(() => {
+    setItems([]);
+  }, []);
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce(
     (sum, item) => sum + item.quantity * item.product.price,
@@ -141,6 +146,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         removeItem,
         refreshCart,
+        clearCart,
       }}
     >
       {children}
