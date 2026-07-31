@@ -193,11 +193,14 @@ export interface StoreInventoryRaw {
   product_id: string;
   updated_by: string;
   quantity: number;
+  planned_quantity: number;
+  remaining_quantity: number;
   status: StoreInventoryItemStatusEnum;
   updated_at: string | null;
   created_at: string;
   products: ProductItem;
   staffs: StaffItem;
+  business_date: string;
 }
 
 export type OrderStatusEnum =

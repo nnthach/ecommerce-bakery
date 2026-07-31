@@ -67,7 +67,7 @@ export async function GET(
 
     // Lấy status tồn kho của store online cho sản phẩm này
     const { data: inventory } = await supabaseAdmin
-      .from("store_inventories")
+      .from("daily_inventories")
       .select("status, stores!inner(type)")
       .eq("product_id", product.id)
       .eq("stores.type", "online")

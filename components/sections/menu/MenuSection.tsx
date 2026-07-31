@@ -72,7 +72,7 @@ export default function MenuSection() {
         setIsLoading(false);
       }
     },
-    [locale],
+    [locale, setPagination],
   );
 
   useEffect(() => {

@@ -254,13 +254,19 @@ export default function StaffStoreInventoryPage() {
                 {t("admin.storeInventoriesPage.table.columns.name")}
               </TableHead>
               <TableHead>
-                {t("admin.storeInventoriesPage.table.columns.quantity")}
+                {t("admin.storeInventoriesPage.table.columns.plannedQuantity")}
+              </TableHead>
+              <TableHead>
+                {t("admin.storeInventoriesPage.table.columns.remainQuantity")}
               </TableHead>
               <TableHead>
                 {t("admin.storeInventoriesPage.table.columns.updatedBy")}
               </TableHead>
               <TableHead>
                 {t("admin.storeInventoriesPage.table.columns.status")}
+              </TableHead>
+              <TableHead>
+                {t("admin.storeInventoriesPage.table.columns.businessDate")}
               </TableHead>
               <TableHead className="text-right">
                 {t("admin.table.columns.actions")}
@@ -300,6 +306,7 @@ export default function StaffStoreInventoryPage() {
                   available: "success",
                   low_stock: "warning",
                   out_of_stock: "destructive",
+                  draft: "secondary",
                 };
                 const statusKey = storeInventory.status ?? "unknown";
 
@@ -327,7 +334,10 @@ export default function StaffStoreInventoryPage() {
                       {translation?.name}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {storeInventory.quantity}
+                      {storeInventory.planned_quantity}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {storeInventory.remaining_quantity}
                     </TableCell>
                     <TableCell className="font-medium">
                       {storeInventory.staffs?.users?.full_name ?? "-"}
@@ -336,6 +346,9 @@ export default function StaffStoreInventoryPage() {
                       <Badge variant={statusVariant[statusKey] ?? "secondary"}>
                         {t(`admin.storeInventoriesPage.status.${statusKey}`)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {storeInventory.business_date ?? "-"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">

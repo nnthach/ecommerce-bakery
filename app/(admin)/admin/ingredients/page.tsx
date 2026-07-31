@@ -108,7 +108,7 @@ export default function AdminIngredientPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter, page],
+    [appliedFilter, page, setPagination],
   );
 
   useEffect(() => {

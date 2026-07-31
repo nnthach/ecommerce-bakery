@@ -182,6 +182,7 @@ export const translations = {
         available: "Available",
         low_stock: "Low Stock",
         out_of_stock: "Out of Stock",
+        draft: "Draft",
       },
     },
     // product detail
@@ -633,15 +634,18 @@ export const translations = {
           columns: {
             image: "Image",
             name: "Product Name",
-            quantity: "Quantity",
+            plannedQuantity: "Planned Quantity",
+            remainQuantity: "Remain Quantity",
             updatedBy: "Updated By",
             status: "Status",
+            businessDate: "Business Date",
           },
         },
         status: {
           available: "Available",
           out_of_stock: "Out of Stock",
           low_stock: "Low Stock",
+          draft: "Draft",
           unknown: "Unknown",
         },
         storeSelect: {
@@ -1462,15 +1466,18 @@ export const translations = {
           columns: {
             image: "Hình ảnh",
             name: "Tên sản phẩm",
-            quantity: "Số lượng",
+            plannedQuantity: "Số lượng ban đầu",
+            remainQuantity: "Số lượng còn lại",
             updatedBy: "Người cập nhật",
             status: "Trạng thái",
+            businessDate: "Ngày bán",
           },
         },
         status: {
           available: "Còn hàng",
           out_of_stock: "Hết hàng",
           low_stock: "Sắp hết hàng",
+          draft: "Bản nháp",
           unknown: "Không xác định",
         },
         storeSelect: {

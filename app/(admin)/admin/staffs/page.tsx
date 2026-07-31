@@ -133,7 +133,7 @@ export default function AdminStaffPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter, page, debouncedSearch],
+    [appliedFilter, page, debouncedSearch, setPagination],
   );
 
   useEffect(() => {
@@ -517,9 +517,7 @@ export default function AdminStaffPage() {
         <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {t("admin.staffsPage.showing")}{" "}
-            <span className="font-medium text-foreground">
-              {staffs.length}
-            </span>{" "}
+            <span className="font-medium text-foreground">{staffs.length}</span>{" "}
             {t("admin.table.pagination.of")}{" "}
             <span className="font-medium text-foreground">
               {pagination?.total_items ?? staffs.length}

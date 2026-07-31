@@ -141,7 +141,7 @@ export default function AdminStoreInventoryPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter, page],
+    [appliedFilter, page, setPagination],
   );
 
   // only fetch inventory once a store_id is available; refetch when it changes
@@ -325,7 +325,7 @@ export default function AdminStoreInventoryPage() {
                 </div>
               </PopoverContent>
             </Popover>
-            
+
             <select
               className="border rounded-md h-9 px-2 w-48 text-sm bg-card"
               value={selectedStoreId}
@@ -374,13 +374,19 @@ export default function AdminStoreInventoryPage() {
                 {t("admin.storeInventoriesPage.table.columns.name")}
               </TableHead>
               <TableHead>
-                {t("admin.storeInventoriesPage.table.columns.quantity")}
+                {t("admin.storeInventoriesPage.table.columns.plannedQuantity")}
+              </TableHead>
+              <TableHead>
+                {t("admin.storeInventoriesPage.table.columns.remainQuantity")}
               </TableHead>
               <TableHead>
                 {t("admin.storeInventoriesPage.table.columns.updatedBy")}
               </TableHead>
               <TableHead>
                 {t("admin.storeInventoriesPage.table.columns.status")}
+              </TableHead>
+              <TableHead>
+                {t("admin.storeInventoriesPage.table.columns.businessDate")}
               </TableHead>
               <TableHead className="text-right">
                 {t("admin.table.columns.actions")}
@@ -447,7 +453,10 @@ export default function AdminStoreInventoryPage() {
                       {translation?.name}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {storeInventory.quantity}
+                      {storeInventory.planned_quantity}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {storeInventory.remaining_quantity}
                     </TableCell>
                     <TableCell className="font-medium">
                       {storeInventory.staffs?.users?.full_name ?? "-"}
@@ -456,6 +465,9 @@ export default function AdminStoreInventoryPage() {
                       <Badge variant={statusVariant[statusKey] ?? "secondary"}>
                         {t(`admin.storeInventoriesPage.status.${statusKey}`)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {storeInventory.business_date ?? "-"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
@@ -479,9 +491,7 @@ export default function AdminStoreInventoryPage() {
         <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {t("admin.storeInventoriesPage.showing")}{" "}
-            <span className="font-medium text-foreground">
-              {stores.length}
-            </span>{" "}
+            <span className="font-medium text-foreground">{stores.length}</span>{" "}
             {t("admin.table.pagination.of")}{" "}
             <span className="font-medium text-foreground">
               {pagination?.total_items ?? stores.length}

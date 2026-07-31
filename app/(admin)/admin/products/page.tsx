@@ -106,7 +106,7 @@ export default function AdminProductPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter, locale, page, debouncedSearch],
+    [appliedFilter, locale, page, debouncedSearch, setPagination],
   );
 
   useEffect(() => {

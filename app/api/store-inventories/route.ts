@@ -40,10 +40,10 @@ export async function GET(req: NextRequest) {
     const to = from + limitNum - 1;
 
     let query = supabaseAdmin
-      .from("store_inventories")
+      .from("daily_inventories")
       .select(
         `
-        quantity,
+        planned_quantity,
         status,
         stores!inner(id, type),
         products!inner(
@@ -128,3 +128,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

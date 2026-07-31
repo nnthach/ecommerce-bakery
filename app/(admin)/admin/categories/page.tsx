@@ -105,7 +105,7 @@ export default function AdminCategoryPage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter, page],
+    [appliedFilter, page, setPagination],
   );
 
   useEffect(() => {

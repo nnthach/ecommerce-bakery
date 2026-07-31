@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     const store_id = staff.store_id;
 
     const { data, error } = await supabaseAdmin
-      .from("store_inventories")
+      .from("daily_inventories")
       .select(
         `
         *,
@@ -135,14 +135,16 @@ export async function POST(req: NextRequest) {
       (item: { product_id: string; quantity: number }) => ({
         store_id: staff.store_id,
         product_id: item.product_id,
-        quantity: item.quantity,
+        planned_quantity: item.quantity,
         updated_by: staff.id,
         updated_at: new Date().toISOString(),
+        business_date: new Date().toISOString().split("T")[0],
+        status: "draft",
       }),
     );
 
     const { error } = await supabaseAdmin
-      .from("store_inventories")
+      .from("daily_inventories")
       .upsert(rows, {
         onConflict: "store_id, product_id",
       });

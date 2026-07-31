@@ -136,7 +136,7 @@ export default function AdminStorePage() {
         setIsLoading(false);
       }
     },
-    [appliedFilter, page, debouncedSearch],
+    [appliedFilter, page, debouncedSearch, setPagination],
   );
 
   useEffect(() => {
@@ -499,7 +499,11 @@ export default function AdminStorePage() {
                   </TableCell>
                   <TableCell className="font-medium">{store.phone}</TableCell>
                   <TableCell>
-                    <Badge variant={store.type === "online" ? "secondary" : "outline"}>
+                    <Badge
+                      variant={
+                        store.type === "online" ? "secondary" : "outline"
+                      }
+                    >
                       {store.type === "online" ? "Online" : "Offline"}
                     </Badge>
                   </TableCell>
@@ -572,9 +576,7 @@ export default function AdminStorePage() {
         <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {t("admin.table.pagination.showing")}{" "}
-            <span className="font-medium text-foreground">
-              {stores.length}
-            </span>{" "}
+            <span className="font-medium text-foreground">{stores.length}</span>{" "}
             {t("admin.table.pagination.of")}{" "}
             <span className="font-medium text-foreground">
               {pagination?.total_items ?? stores.length}
