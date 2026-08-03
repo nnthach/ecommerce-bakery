@@ -1,5 +1,9 @@
 import { isSupabaseConfigured, supabase, supabaseAdmin } from "@/lib/supabase";
-import { ProductIngredientRow, RawProduct } from "@/types";
+import {
+  ProductIngredientRow,
+  ProductStoreInventory,
+  RawProduct,
+} from "@/types";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -65,13 +69,35 @@ export async function GET(
     const product = data as RawProduct;
     const trans = product.product_translations?.[0] ?? {};
 
-    // Lấy status tồn kho của store online cho sản phẩm này
-    const { data: inventory } = await supabaseAdmin
+    // query các store còn hàng
+    const businessDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }).format(new Date());
+
+    const { data: stores } = await supabaseAdmin
       .from("daily_inventories")
-      .select("status, stores!inner(type)")
+      .select(
+        `
+    remaining_quantity,
+    planned_quantity,
+    status,
+    stores(
+      id,
+      name,
+      city,
+      district,
+      address,
+      phone
+    )
+  `,
+      )
       .eq("product_id", product.id)
-      .eq("stores.type", "online")
-      .maybeSingle();
+      .eq("business_date", businessDate)
+      .gt("remaining_quantity", 0);
+
+    // format and return
+    const availableStores = (stores ??
+      []) as unknown as ProductStoreInventory[];
 
     const formatted = {
       id: product.id,
@@ -80,14 +106,31 @@ export async function GET(
       is_active: product.is_active,
       created_at: product.created_at,
       updated_at: product.updated_at,
+
       category: product.categories,
+
       name: trans.name ?? null,
       description: trans.description ?? null,
       slug: trans.slug ?? null,
+
       ingredients: (product.product_ingredients ?? []).map(
         (pi: ProductIngredientRow) => pi.ingredients,
       ),
-      status: inventory?.status ?? null,
+
+      status: availableStores.length > 0 ? "available" : "out_of_stock",
+
+      stores: availableStores.map((inventory) => ({
+        id: inventory.stores.id,
+        name: inventory.stores.name,
+        city: inventory.stores.city,
+        district: inventory.stores.district,
+        address: inventory.stores.address,
+        phone: inventory.stores.phone,
+
+        planned_quantity: inventory.planned_quantity,
+        remaining_quantity: inventory.remaining_quantity,
+        status: inventory.status,
+      })),
     };
 
     return NextResponse.json(

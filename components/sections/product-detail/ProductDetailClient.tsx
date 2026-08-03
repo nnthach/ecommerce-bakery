@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import ProductCard from "@/components/custom/ProductCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BakeryProduct, ProductItem } from "@/types";
+import { BakeryProduct, ProductDetailPage } from "@/types";
 import { ChevronLeft, Wheat } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +13,9 @@ import { notFound } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/context/I18nContext";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function ProductDetailClient({
   params,
@@ -20,8 +23,12 @@ export default function ProductDetailClient({
   params: { slug: string };
 }) {
   const { t, locale } = useI18n();
+  const { user } = useAuth();
   const { addItem } = useCart();
-  const [product, setProduct] = useState<ProductItem | null>(null);
+
+  const router = useRouter();
+
+  const [product, setProduct] = useState<ProductDetailPage | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<BakeryProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -47,33 +54,44 @@ export default function ProductDetailClient({
     }
   }, [params.slug, locale]);
 
-  const fetchRelatedProducts = useCallback(async (categoryId: string, currentId: string) => {
-    try {
-      const query = new URLSearchParams({
-        is_active: "true",
-        locale,
-        category_id: categoryId,
-      });
-      const res = await fetch(`/api/admin/products?${query.toString()}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        const related: BakeryProduct[] = data.data
-          .filter((p: { id: string }) => p.id !== currentId)
-          .slice(0, 3)
-          .map((p: { slug: string; image_url: string[]; name: string; description: string; price: number }) => ({
-            id: p.slug,
-            image: p.image_url?.[0] ?? "/images/placeholder.webp",
-            name: p.name,
-            description: p.description,
-            price: p.price.toLocaleString("vi-VN") + " đ",
-          }));
-        setRelatedProducts(related);
+  const fetchRelatedProducts = useCallback(
+    async (categoryId: string, currentId: string) => {
+      try {
+        const query = new URLSearchParams({
+          is_active: "true",
+          locale,
+          category_id: categoryId,
+        });
+        const res = await fetch(`/api/admin/products?${query.toString()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          const related: BakeryProduct[] = data.data
+            .filter((p: { id: string }) => p.id !== currentId)
+            .slice(0, 3)
+            .map(
+              (p: {
+                slug: string;
+                image_url: string[];
+                name: string;
+                description: string;
+                price: number;
+              }) => ({
+                id: p.slug,
+                image: p.image_url?.[0] ?? "/images/placeholder.webp",
+                name: p.name,
+                description: p.description,
+                price: p.price.toLocaleString("vi-VN") + " đ",
+              }),
+            );
+          setRelatedProducts(related);
+        }
+      } catch (error) {
+        console.error("Failed to fetch related products:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch related products:", error);
-    }
-  }, [locale]);
+    },
+    [locale],
+  );
 
   useEffect(() => {
     fetchProduct();
@@ -104,7 +122,29 @@ export default function ProductDetailClient({
     );
   }
 
-  if (!product) return null;
+  if (!product) {
+    toast.error(
+      locale === "en" ? "Product not found" : "Không tìm thấy sản phẩm",
+    );
+
+    router.back();
+
+    return null;
+  }
+
+  const addToCartButton = async () => {
+    if (!user) {
+      toast.error(
+        locale === "en"
+          ? "Please log in to add items to cart"
+          : "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",
+      );
+      return;
+    }
+    setIsAdding(true);
+    await addItem(product.id);
+    setIsAdding(false);
+  };
 
   const image = product.image_url?.[0] ?? "/images/placeholder.webp";
   const categoryName = product.category?.name?.[locale as "en" | "vi"] ?? "";
@@ -180,7 +220,7 @@ export default function ProductDetailClient({
             </div>
           )}
 
-          <div className="mt-10">
+          <div className="mt-10 flex flex-col items-center gap-3">
             <Button
               variant={isOutOfStock ? "secondary" : "accent"}
               size="lg"
@@ -190,16 +230,24 @@ export default function ProductDetailClient({
                   "cursor-not-allowed bg-charcoal/10 text-charcoal/40 hover:bg-charcoal/10",
               )}
               disabled={isAdding || isOutOfStock}
-              onClick={async () => {
-                setIsAdding(true);
-                await addItem(product.id);
-                setIsAdding(false);
-              }}
+              onClick={addToCartButton}
             >
               {isOutOfStock
                 ? t("menuPage.productStatus.out_of_stock")
                 : t("button.addToCart")}
             </Button>
+
+            {!isOutOfStock && product?.stores.length > 0 && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+
+                <p>
+                  {locale === "en" ? "Available at" : "Còn hàng tại"}{" "}
+                  <span className="font-semibold">{product.stores.length}</span>{" "}
+                  {locale === "en" ? "cities" : "thành phố"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

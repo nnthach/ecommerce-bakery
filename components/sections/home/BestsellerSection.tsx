@@ -31,6 +31,7 @@ export default function BestsellerSection() {
         limit: "6",
         pageNumber: "1",
         locale,
+        is_daily_bake: "true",
       });
       const res = await fetch(`/api/products?${params.toString()}`);
       if (!res.ok) return;

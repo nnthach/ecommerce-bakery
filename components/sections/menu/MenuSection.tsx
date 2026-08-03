@@ -55,11 +55,12 @@ export default function MenuSection() {
           limit: String(PRODUCTS_PER_PAGE),
           page: String(pageNum),
           locale,
+          city: "Hồ Chí Minh",
         });
         if (categoryId !== "all") {
           params.set("category_id", categoryId);
         }
-        const res = await fetch(`/api/store-inventories?${params.toString()}`);
+        const res = await fetch(`/api/products/menu?${params.toString()}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && data.data) {

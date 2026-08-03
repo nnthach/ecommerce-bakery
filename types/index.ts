@@ -94,6 +94,26 @@ export interface ProductTranslation {
   locale: string;
 }
 
+export interface ProductStoreInventory {
+  remaining_quantity: number;
+  planned_quantity: number;
+  status: string;
+
+  stores: {
+    id: string;
+    name: string;
+    city: string;
+    district: string;
+
+    address: {
+      en: string;
+      vi: string;
+    };
+
+    phone: string;
+  };
+}
+
 export interface ProductItem {
   id: string;
   name: string;
@@ -112,6 +132,10 @@ export interface ProductItem {
   created_at: string;
   updated_at: string | null;
   status?: StoreInventoryItemStatusEnum;
+}
+
+export interface ProductDetailPage extends ProductItem {
+  stores: ProductStoreInventory[];
 }
 
 export type StoreTypeEnum = "online" | "offline";

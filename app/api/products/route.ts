@@ -12,8 +12,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { is_active, category_id, sort_by, order, locale, page, limit } =
-      getSearchParams(req);
+    const {
+      is_active,
+      category_id,
+      sort_by,
+      order,
+      locale,
+      page,
+      limit,
+      is_daily_bake,
+    } = getSearchParams(req);
 
     const validSortBy = ["name", "created_at"].includes(sort_by)
       ? sort_by
@@ -45,6 +53,10 @@ export async function GET(req: NextRequest) {
 
     if (is_active !== null && is_active !== "") {
       query = query.eq("is_active", is_active === "true");
+    }
+
+    if (is_daily_bake !== null && is_daily_bake !== "") {
+      query = query.eq("is_daily_bake", is_daily_bake === "true");
     }
 
     if (category_id !== null && category_id !== "") {
