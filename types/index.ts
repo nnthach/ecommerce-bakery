@@ -237,3 +237,31 @@ export type OrderStatusEnum =
 
 export type PaymentStatusEnum = "unpaid" | "paid" | "failed" | "refunded";
 export type PaymentMethodEnum = "payos" | "visa";
+
+export interface PayOSWebhookBody {
+  code: string;
+  desc: string;
+  success: boolean;
+  data: {
+    orderCode: number;
+    amount: number;
+    description: string;
+    accountNumber: string;
+    reference: string;
+    transactionDateTime: string;
+    currency: string;
+    paymentLinkId: string;
+
+    code: string;
+    desc: string;
+
+    counterAccountBankId: string;
+    counterAccountBankName: string;
+    counterAccountName: string;
+    counterAccountNumber: string;
+
+    virtualAccountName: string;
+    virtualAccountNumber: string;
+  };
+  signature: string;
+}

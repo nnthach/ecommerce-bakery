@@ -15,20 +15,36 @@ import { useCart } from "@/context/CartContext";
 import { useI18n } from "@/context/I18nContext";
 import { ShippingFormData } from "@/lib/validations/order";
 
+interface OrderPayload {
+  name: string;
+  phone: string;
+  address: string;
+  note?: string;
+  city: string;
+  district: string;
+  ward: string;
+  subtotal: number;
+  shipping_fee: number;
+  total: number;
+  items: {
+    product_id: string;
+    product_name: string;
+    unit_price: number;
+    quantity: number;
+    subtotal: number;
+  }[];
+}
+
 interface CheckOutFormProps {
   handleSubmit: UseFormHandleSubmit<ShippingFormData>;
   isSubmitting: boolean;
-  totalPrice: number;
-  shippingFee: number;
-  grandTotal: number;
+  createOrderPayload: (data: ShippingFormData) => OrderPayload;
 }
 
 export default function CheckOutForm({
   handleSubmit,
   isSubmitting,
-  totalPrice,
-  shippingFee,
-  grandTotal,
+  createOrderPayload,
 }: CheckOutFormProps) {
   const { t } = useI18n();
   const { items, clearCart } = useCart();
@@ -53,24 +69,8 @@ export default function CheckOutForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: data.name,
-          phone: data.phone,
-          address: data.address,
-          note: data.note,
-          city: data.city,
-          district: data.district,
-          ward: data.ward,
-          paymentMethod: data.paymentMethod,
-          subtotal: totalPrice,
-          shipping_fee: shippingFee,
-          total: grandTotal,
-          items: items.map((item) => ({
-            product_id: item.product_id,
-            product_name: item.product.name,
-            unit_price: item.product.price,
-            quantity: item.quantity,
-            subtotal: item.product.price * item.quantity,
-          })),
+          ...createOrderPayload(data),
+          paymentMethod: "visa",
         }),
       });
 

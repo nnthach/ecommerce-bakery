@@ -38,3 +38,9 @@ export function getSearchParams(req: NextRequest) {
     search: params.get("search")?.trim() ?? "",
   };
 }
+export function generateOrderCode() {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+
+  return Number(`${timestamp}${random.toString().padStart(3, "0")}`);
+}

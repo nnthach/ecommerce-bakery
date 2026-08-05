@@ -12,7 +12,7 @@ export const createShippingSchema = (t: (path: string) => string) =>
     ward: z.string().min(1, t("orderPage.errors.wardRequired")),
     address: z.string().min(1, t("orderPage.errors.addressRequired")),
     note: z.string().optional(),
-    paymentMethod: z.enum(["visa", "qr"]),
+    paymentMethod: z.enum(["visa", "qr", ""]),
   });
 
 export type ShippingFormData = z.infer<ReturnType<typeof createShippingSchema>>;

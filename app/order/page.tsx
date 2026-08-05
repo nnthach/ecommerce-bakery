@@ -26,14 +26,15 @@ import {
   ShippingFormData,
 } from "@/lib/validations/order";
 import CheckOutForm from "@/components/sections/order/CheckOutForm";
+import toast from "react-hot-toast";
 
-const SHIPPING_FEE = 15000;
+const SHIPPING_FEE = 1000;
 const FREE_SHIPPING_THRESHOLD = 300000;
 
 export default function OrderPage() {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { totalPrice } = useCart();
+  const { items, totalPrice } = useCart();
 
   const shippingSchema = createShippingSchema(t);
 
@@ -54,7 +55,7 @@ export default function OrderPage() {
       ward: "",
       address: "",
       note: "",
-      paymentMethod: "visa",
+      paymentMethod: "",
     },
   });
 
@@ -66,18 +67,70 @@ export default function OrderPage() {
     setIsVisaOpen(open);
     if (open) setValue("paymentMethod", "visa", { shouldValidate: false });
   };
+  // end visa
 
+  // qr
   const handleQrOpenChange = (open: boolean) => {
     setIsQrOpen(open);
     if (open) setValue("paymentMethod", "qr", { shouldValidate: false });
   };
-  // end visa
+  // end qr
 
   const shippingFee =
     totalPrice === 0 || totalPrice >= FREE_SHIPPING_THRESHOLD
       ? 0
       : SHIPPING_FEE;
   const grandTotal = totalPrice + shippingFee;
+
+  // payload
+  const createOrderPayload = (data: ShippingFormData) => ({
+    name: data.name,
+    phone: data.phone,
+    address: data.address,
+    note: data.note,
+    city: data.city,
+    district: data.district,
+    ward: data.ward,
+    subtotal: totalPrice,
+    shipping_fee: shippingFee,
+    total: grandTotal,
+    items: items.map((item) => ({
+      product_id: item.product_id,
+      product_name: item.product.name,
+      unit_price: item.product.price,
+      quantity: item.quantity,
+      subtotal: item.product.price * item.quantity,
+    })),
+  });
+
+  // payos submit
+  const onSubmit = async (data: ShippingFormData) => {
+    try {
+      const res = await fetch("/api/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...createOrderPayload(data),
+          paymentMethod: "payos",
+        }),
+      });
+
+      const resData = await res.json();
+
+      console.log("PayOS response:", resData);
+
+      if (!res.ok) {
+        throw new Error(resData.error);
+      }
+
+      window.location.href = resData.data.payment_link;
+    } catch (error) {
+      console.error(error);
+      toast.error(t("orderPage.toastError"));
+    }
+  };
 
   return (
     <div className="flex h-screen flex-col bg-sand">
@@ -159,9 +212,7 @@ export default function OrderPage() {
                             <CheckOutForm
                               handleSubmit={handleSubmit}
                               isSubmitting={isSubmitting}
-                              totalPrice={totalPrice}
-                              shippingFee={shippingFee}
-                              grandTotal={grandTotal}
+                              createOrderPayload={createOrderPayload}
                             />
                           </Elements>
                         )}
@@ -193,9 +244,9 @@ export default function OrderPage() {
                         />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="border-t border-charcoal/10 p-4">
-                        <p className="text-center text-sm text-charcoal/50">
-                          {t("orderPage.payment.payos.comingSoon")}
-                        </p>
+                        <Button onClick={handleSubmit(onSubmit)}>
+                          Payment with PayOS
+                        </Button>
                       </CollapsibleContent>
                     </Collapsible>
                   </div>

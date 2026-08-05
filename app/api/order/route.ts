@@ -1,9 +1,10 @@
+import { payosConfig } from "@/lib/payos";
 import stripeClient from "@/lib/stripe";
 import { createSupabaseServerClient, supabaseAdmin } from "@/lib/supabase";
+import { generateOrderCode } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
-// TODO: replace with real store selection once multi-store checkout is wired up
-const STORE_ID = "bdedc75d-06a9-42c6-9199-f0de16a43daf";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
 // create order
 export async function POST(req: NextRequest) {
@@ -61,12 +62,104 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // check store by city
+    const { data: store, error: storeError } = await supabaseAdmin
+      .from("stores")
+      .select("id")
+      .eq("city", city)
+      .eq("type", "online")
+      .single();
+
+    if (storeError || !store) {
+      return NextResponse.json(
+        { success: false, error: "Invalid delivery city" },
+        { status: 400, headers: res.headers },
+      );
+    }
+
+    // check item is available in store
+    const productIds = items.map((item) => item.product_id);
+
+    const businessDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }).format(new Date());
+
+    const { data: inventories, error: inventoryError } = await supabaseAdmin
+      .from("daily_inventories")
+      .select(
+        `
+        product_id,
+        remaining_quantity,
+        status
+      `,
+      )
+      .eq("store_id", store.id)
+      .eq("business_date", businessDate)
+      .in("product_id", productIds);
+
+    if (inventoryError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to check inventory",
+        },
+        {
+          status: 500,
+          headers: res.headers,
+        },
+      );
+    }
+
+    // check each item
+    for (const item of items) {
+      const inventory = inventories?.find(
+        (inv) => inv.product_id === item.product_id,
+      );
+
+      // out of stock
+      if (!inventory) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Product is not available today",
+            product_id: item.product_id,
+          },
+          {
+            status: 400,
+            headers: res.headers,
+          },
+        );
+      }
+
+      // ko đủ quantity
+      if (
+        inventory.status !== "available" ||
+        inventory.remaining_quantity < item.quantity
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Insufficient stock",
+            product_id: item.product_id,
+            available_quantity: inventory.remaining_quantity,
+            requested_quantity: item.quantity,
+          },
+          {
+            status: 400,
+            headers: res.headers,
+          },
+        );
+      }
+    }
+
+    const orderCode = generateOrderCode();
+
     // Create db order
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
         user_id: authUser.id,
-        store_id: STORE_ID,
+        store_id: store.id,
         payment_method: paymentMethod,
         name,
         phone,
@@ -77,6 +170,7 @@ export async function POST(req: NextRequest) {
         ward,
         subtotal,
         shipping_fee,
+        order_code: orderCode,
         total,
       })
       .select("id")
@@ -108,39 +202,87 @@ export async function POST(req: NextRequest) {
 
     if (orderItemsError) throw orderItemsError;
 
-    // Create payment stripe
-    const paymentIntent = await stripeClient.paymentIntents.create({
-      amount: total,
-      currency: "vnd",
-      payment_method_types: ["card"], // đồng bộ với bên client
-      metadata: {
-        orderId: order.id,
-      },
-    });
+    if (paymentMethod === "payos") {
+      // create payment payos
 
-    // Create payment table
-    const { data: payment, error: paymentError } = await supabaseAdmin
-      .from("payments")
-      .insert({
-        order_id: order.id,
-        method: paymentMethod,
+      const paymentData = {
+        orderCode: Number(orderCode),
         amount: total,
-        payment_intent_id: paymentIntent.id,
-      })
-      .single();
-    if (paymentError) throw paymentError;
+        description: "#" + orderCode,
+        items: items.map(
+          (item: {
+            product_name: string;
+            quantity: number;
+            unit_price: number;
+          }) => ({
+            name: item.product_name,
+            quantity: item.quantity,
+            price: item.unit_price,
+          }),
+        ),
+        cancelUrl: `${appUrl}/payment`,
+        returnUrl: `${appUrl}/payment`,
+      };
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          id: order.id,
-          clientSecret: paymentIntent.client_secret,
-          payment,
+      const paymentLink = await payosConfig.paymentRequests.create(paymentData);
+
+      console.log("PayOS payment link:", paymentLink);
+
+      // Create payment table
+      const { error: paymentError } = await supabaseAdmin
+        .from("payments")
+        .insert({
+          order_id: order.id,
+          method: paymentMethod,
+          amount: total,
+        })
+        .single();
+      if (paymentError) throw paymentError;
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            id: order.id,
+            payment_link: paymentLink.checkoutUrl,
+          },
         },
-      },
-      { status: 201, headers: res.headers },
-    );
+        { status: 201, headers: res.headers },
+      );
+    } else {
+      // Create payment stripe
+      const paymentIntent = await stripeClient.paymentIntents.create({
+        amount: total,
+        currency: "vnd",
+        payment_method_types: ["card"], // đồng bộ với bên client
+        metadata: {
+          orderId: order.id,
+        },
+      });
+
+      // Create payment table
+      const { data: payment, error: paymentError } = await supabaseAdmin
+        .from("payments")
+        .insert({
+          order_id: order.id,
+          method: paymentMethod,
+          amount: total,
+          payment_intent_id: paymentIntent.id,
+        })
+        .single();
+      if (paymentError) throw paymentError;
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            id: order.id,
+            clientSecret: paymentIntent.client_secret,
+            payment,
+          },
+        },
+        { status: 201, headers: res.headers },
+      );
+    }
   } catch (error) {
     console.error("Create order error:", error);
     return NextResponse.json(

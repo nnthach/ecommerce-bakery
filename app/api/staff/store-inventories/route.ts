@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabaseAdmin
       .from("daily_inventories")
       .upsert(rows, {
-        onConflict: "store_id, product_id",
+        onConflict: "store_id, product_id, business_date",
       });
 
     if (error) throw error;
