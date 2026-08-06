@@ -6,21 +6,31 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("1");
     const body = (await req.json()) as PayOSWebhookBody;
 
+    console.log("2", body);
+
     const webhookData = await payosConfig.webhooks.verify(body);
+
+    console.log("3", webhookData);
 
     const { code, orderCode } = webhookData;
 
     // check order
-    const { data: order, error: orderError } = await supabaseAdmin
+    const { data: order } = await supabaseAdmin
       .from("orders")
-      .select("id, user_id, payment_status")
+      .select("id,user_id,payment_status")
       .eq("order_code", orderCode)
-      .single();
+      .maybeSingle();
 
-    if (orderError || !order) {
-      throw orderError;
+    if (!order) {
+      console.log("Verify webhook only:", orderCode);
+
+      return NextResponse.json({
+        error: 0,
+        message: "OK",
+      });
     }
 
     // webhook bị gọi lại
