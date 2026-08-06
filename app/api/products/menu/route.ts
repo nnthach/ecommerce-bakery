@@ -123,6 +123,13 @@ export async function GET(req: NextRequest) {
 
       const inventory = inventoryMap.get(product.id);
 
+      const remainingQuantity = inventory?.remaining_quantity ?? 0;
+
+      const status =
+        remainingQuantity <= 0
+          ? "out_of_stock"
+          : (inventory?.status ?? "available");
+
       return {
         id: product.id,
         price: product.price,
@@ -143,7 +150,7 @@ export async function GET(req: NextRequest) {
 
         planned_quantity: inventory?.planned_quantity ?? 0,
         remaining_quantity: inventory?.remaining_quantity ?? 0,
-        status: inventory?.status ?? "out_of_stock",
+        status: status,
       };
     });
 

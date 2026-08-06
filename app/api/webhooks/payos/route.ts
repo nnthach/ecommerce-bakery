@@ -6,14 +6,9 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("1");
     const body = (await req.json()) as PayOSWebhookBody;
 
-    console.log("2", body);
-
     const webhookData = await payosConfig.webhooks.verify(body);
-
-    console.log("3", webhookData);
 
     const { code, orderCode } = webhookData;
 
@@ -25,8 +20,6 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (!order) {
-      console.log("Verify webhook only:", orderCode);
-
       return NextResponse.json({
         error: 0,
         message: "OK",
@@ -43,6 +36,7 @@ export async function POST(req: NextRequest) {
 
     // Chỉ xử lý khi thanh toán thành công
     if (code === "00") {
+      // ORDERS
       const { data: order, error: orderError } = await supabaseAdmin
         .from("orders")
         .update({
@@ -50,82 +44,106 @@ export async function POST(req: NextRequest) {
           status: "confirmed",
         })
         .eq("order_code", orderCode)
-        .select("user_id, id")
+        .select("id, user_id, store_id")
         .single();
 
-      if (orderError) {
-        console.error("Update order error:", orderError);
+      if (orderError || !order) {
+        throw orderError;
       }
 
-      // update stock
+      // Lấy danh sách sản phẩm trong đơn ORDER_ITEMS
       const { data: items, error: itemsError } = await supabaseAdmin
         .from("order_items")
         .select(
           `
-          product_id,
-          quantity,
-          store_id
-        `,
+      product_id,
+      quantity
+    `,
         )
-        .eq("order_id", order?.id);
+        .eq("order_id", order.id);
 
       if (itemsError) throw itemsError;
+
+      if (!items || items.length === 0) {
+        return NextResponse.json({
+          error: 0,
+          message: "No items",
+        });
+      }
 
       const businessDate = new Intl.DateTimeFormat("en-CA", {
         timeZone: "Asia/Ho_Chi_Minh",
       }).format(new Date());
 
+      // Trừ tồn kho DAILY_INVENTORIES
       for (const item of items) {
-        const { data: inventory } = await supabaseAdmin
+        const { data: inventory, error: inventoryError } = await supabaseAdmin
           .from("daily_inventories")
           .select("remaining_quantity")
-          .eq("store_id", item.store_id)
+          .eq("store_id", order.store_id)
           .eq("product_id", item.product_id)
           .eq("business_date", businessDate)
-          .single();
+          .maybeSingle();
+
+        if (inventoryError) throw inventoryError;
 
         if (!inventory) continue;
 
-        await supabaseAdmin
+        const newRemaining = Math.max(
+          0,
+          inventory.remaining_quantity - item.quantity,
+        );
+
+        let status: "available" | "low_stock" | "out_of_stock";
+
+        if (newRemaining === 0) {
+          status = "out_of_stock";
+        } else if (newRemaining <= 10) {
+          status = "low_stock";
+        } else {
+          status = "available";
+        }
+
+        const { error: updateInventoryError } = await supabaseAdmin
           .from("daily_inventories")
           .update({
-            remaining_quantity: Math.max(
-              0,
-              inventory.remaining_quantity - item.quantity,
-            ),
+            remaining_quantity: newRemaining,
+            status,
           })
-          .eq("store_id", item.store_id)
+          .eq("store_id", order.store_id)
           .eq("product_id", item.product_id)
           .eq("business_date", businessDate);
+
+        if (updateInventoryError) throw updateInventoryError;
       }
 
-      // update payment
-      await supabaseAdmin
+      // Update payment
+      const { error: paymentError } = await supabaseAdmin
         .from("payments")
         .update({
           status: "paid",
         })
-        .eq("order_id", order?.id || "");
+        .eq("order_id", order.id);
 
-      // clear user's cart after successful order
-      if (order?.user_id) {
+      if (paymentError) throw paymentError;
+
+      // Clear cart
+      if (order.user_id) {
         const { data: cart, error: cartError } = await supabaseAdmin
           .from("carts")
           .select("id")
           .eq("user_id", order.user_id)
           .maybeSingle();
 
-        if (cartError) {
-          console.error("Fetch cart error:", cartError);
-        } else if (cart) {
+        if (cartError) throw cartError;
+
+        if (cart) {
           const { error: clearCartError } = await supabaseAdmin
             .from("cart_items")
             .delete()
             .eq("cart_id", cart.id);
 
-          if (clearCartError) {
-            console.error("Clear cart error:", clearCartError);
-          }
+          if (clearCartError) throw clearCartError;
         }
       }
     }
