@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const webhookData = await payosConfig.webhooks.verify(body);
 
-    const { code, orderCode } = webhookData;
+    const { code, orderCode, reference } = webhookData;
 
     // check order
     const { data: order } = await supabaseAdmin
@@ -26,7 +26,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // webhook bị gọi lại
+    // Update payment transactionid
+    const { error: paymentError } = await supabaseAdmin
+      .from("payments")
+      .update({
+        transaction_id: reference,
+      })
+      .eq("order_id", order.id);
+
+    if (paymentError) throw paymentError;
+
+    // webhook bị gọi lại lần 2
     if (order.payment_status === "paid") {
       return NextResponse.json({
         error: 0,

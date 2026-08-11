@@ -227,6 +227,32 @@ export interface StoreInventoryRaw {
   business_date: string;
 }
 
+export interface OrderItem {
+  id: string;
+  user_id: string;
+  store_id: string;
+  status: string;
+  payment_status: string;
+  name: string;
+  phone: string;
+  address: string;
+  note: string | null;
+  subtotal: number;
+  shipping_fee: number;
+  total: number;
+  confirmed_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  district: string;
+  ward: string;
+  city: string;
+  payment_method: string;
+  order_code: string;
+  store: StoreItem;
+}
+
 export type OrderStatusEnum =
   | "pending"
   | "confirmed"

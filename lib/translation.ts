@@ -758,6 +758,45 @@ export const translations = {
           },
         },
       },
+      orderPage: {
+        headerTitle: {
+          title: "Orders",
+          subtitle: "Manage orders",
+        },
+        filter: {
+          statusLabel: "Status",
+          sortByLabel: "Sort By",
+          orderLabel: "Order",
+          statusOptions: {
+            all: "All",
+            active: "Active",
+            inactive: "Inactive",
+          },
+          sortByOptions: {
+            createdAt: "Created At",
+            fullname: "Full Name",
+          },
+          orderOptions: {
+            desc: "Descending",
+            asc: "Ascending",
+          },
+        },
+        searchPlaceholder: "Search by customer or order code...",
+        showing: "Showing",
+        staff: "order",
+        table: {
+          columns: {
+            customer: "Customer",
+            orderCode: "Order Code",
+            store: "Store",
+            orderStatus: "Order Status",
+            paymentStatus: "Payment Status",
+            total: "Total",
+            paymentMethod: "Payment Method",
+            createdAt: "Created At",
+          },
+        },
+      },
     },
 
     // staff
@@ -1587,6 +1626,28 @@ export const translations = {
             emailInvalid: "Email không hợp lệ.",
             dobRequired: "Ngày sinh không được để trống.",
             storeRequired: "Cửa hàng không được để trống.",
+          },
+        },
+      },
+      orderPage: {
+        headerTitle: {
+          title: "Đơn hàng",
+          subtitle: "Quản lý đơn hàng",
+        },
+        searchPlaceholder: "Tìm theo khách hàng hoặc mã đơn hàng...",
+        empty: "Không tìm thấy đơn hàng nào",
+        showing: "Hiển thị",
+        order: "đơn hàng",
+        table: {
+          columns: {
+            customer: "Khách hàng",
+            orderCode: "Mã đơn hàng",
+            store: "Cửa hàng",
+            orderStatus: "Trạng thái đơn hàng",
+            paymentStatus: "Trạng thái thanh toán",
+            total: "Tổng cộng",
+            paymentMethod: "Phương thức thanh toán",
+            createdAt: "Ngày tạo",
           },
         },
       },
