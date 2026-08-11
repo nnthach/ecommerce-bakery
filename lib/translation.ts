@@ -781,6 +781,22 @@ export const translations = {
             asc: "Ascending",
           },
         },
+        status: {
+          order: {
+            pending: "Pending",
+            confirmed: "Confirmed",
+            preparing: "Preparing",
+            shipping: "Shipping",
+            delivered: "Delivered",
+            cancelled: "Cancelled",
+          },
+          payment: {
+            unpaid: "Unpaid",
+            paid: "Paid",
+            failed: "Payment failed",
+            refunded: "Refunded",
+          },
+        },
         searchPlaceholder: "Search by customer or order code...",
         showing: "Showing",
         staff: "order",
@@ -1638,6 +1654,22 @@ export const translations = {
         empty: "Không tìm thấy đơn hàng nào",
         showing: "Hiển thị",
         order: "đơn hàng",
+        status: {
+          order: {
+            pending: "Chờ xử lý",
+            confirmed: "Đã xác nhận",
+            preparing: "Đang chuẩn bị",
+            shipping: "Đang giao",
+            delivered: "Đã giao hàng",
+            cancelled: "Đã hủy",
+          },
+          payment: {
+            unpaid: "Chưa thanh toán",
+            paid: "Đã thanh toán",
+            failed: "Thanh toán thất bại",
+            refunded: "Đã hoàn tiền",
+          },
+        },
         table: {
           columns: {
             customer: "Khách hàng",

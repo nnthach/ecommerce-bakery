@@ -23,6 +23,10 @@ import { Button } from "@/components/ui/button";
 import { Eye, Filter, LayoutGrid, Loader2, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { OrderItem } from "@/types";
+import {
+  formatOrderPaymentStatus,
+  formatOrderStatus,
+} from "@/utils/format-status";
 
 const DEFAULT_LIMIT = 8;
 
@@ -404,10 +408,14 @@ export default function AdminOrderPage() {
                     {order?.total ?? "-"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {order?.status}
+                    {t(
+                      `admin.orderPage.status.order.${formatOrderStatus(order?.status)}`,
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {order?.payment_status}
+                    {t(
+                      `admin.orderPage.status.payment.${formatOrderPaymentStatus(order?.payment_status)}`,
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {order?.payment_method}
