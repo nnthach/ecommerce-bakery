@@ -61,11 +61,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2. Get unique product IDs
+    // 2. Get unique product IDs 
     const productIds = Array.from(
       new Set(orderItems.map((item) => item.product_id)),
     );
-    
+
     // 3. Get product translations
     const { data: translations, error: translationsError } = await supabaseAdmin
       .from("product_translations")
