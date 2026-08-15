@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { store_id, is_active, page, limit } = getSearchParams(req);
+    const { store_id, status, page, limit, date } = getSearchParams(req);
 
     if (!store_id) {
       return NextResponse.json(
@@ -50,8 +50,12 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    if (is_active !== null && is_active !== "") {
-      query = query.eq("products.is_active", is_active === "true");
+    if (date) {
+      query = query.eq("business_date", date);
+    }
+
+    if (status !== null && status !== "") {
+      query = query.eq("status", status);
     }
 
     const { data, error, count } = await query;

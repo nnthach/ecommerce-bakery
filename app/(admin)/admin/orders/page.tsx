@@ -25,8 +25,11 @@ import { Input } from "@/components/ui/input";
 import { OrderItem } from "@/types";
 import {
   formatOrderPaymentStatus,
+  formatOrderPaymentStatusColor,
   formatOrderStatus,
+  formatOrderStatusColor,
 } from "@/utils/format-status";
+import { formatDateTime } from "@/lib/utils";
 
 const DEFAULT_LIMIT = 8;
 
@@ -357,9 +360,6 @@ export default function AdminOrderPage() {
                 {t("admin.orderPage.table.columns.paymentStatus")}
               </TableHead>
               <TableHead>
-                {t("admin.orderPage.table.columns.paymentMethod")}
-              </TableHead>
-              <TableHead>
                 {t("admin.orderPage.table.columns.createdAt")}
               </TableHead>
               <TableHead className="text-right">
@@ -371,7 +371,7 @@ export default function AdminOrderPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -405,23 +405,37 @@ export default function AdminOrderPage() {
                     {order?.store?.name}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {order?.total ?? "-"}
+                    {order?.total?.toLocaleString("vi-VN") ?? "-"}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${formatOrderStatusColor(
+                        order?.status,
+                      )}`}
+                    >
+                      {t(
+                        `admin.orderPage.status.order.${formatOrderStatus(
+                          order?.status,
+                        )}`,
+                      )}
+                    </span>
+                  </TableCell>
+
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${formatOrderPaymentStatusColor(
+                        order?.payment_status,
+                      )}`}
+                    >
+                      {t(
+                        `admin.orderPage.status.payment.${formatOrderPaymentStatus(
+                          order?.payment_status,
+                        )}`,
+                      )}
+                    </span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {t(
-                      `admin.orderPage.status.order.${formatOrderStatus(order?.status)}`,
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {t(
-                      `admin.orderPage.status.payment.${formatOrderPaymentStatus(order?.payment_status)}`,
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {order?.payment_method}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {order?.created_at}
+                    {formatDateTime(order?.created_at || "").full}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">

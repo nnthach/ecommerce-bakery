@@ -24,6 +24,7 @@ export function getSearchParams(req: NextRequest) {
 
   return {
     is_active: params.get("is_active"),
+    status: params.get("status"),
     is_daily_bake: params.get("is_daily_bake"),
     category_id: params.get("category_id"),
     store_id: params.get("store_id"),
@@ -36,6 +37,7 @@ export function getSearchParams(req: NextRequest) {
     page: params.get("page") ?? "1",
     limit: params.get("limit") ?? "10",
     search: params.get("search")?.trim() ?? "",
+    date: params.get("date") ?? "",
   };
 }
 export function generateOrderCode() {
@@ -44,3 +46,34 @@ export function generateOrderCode() {
 
   return Number(`${timestamp}${random.toString().padStart(3, "0")}`);
 }
+
+export function formatDateTime(date: Date | string) {
+  const d = new Date(date);
+
+  const datePart = new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
+
+  const timePart = new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(d);
+
+  return {
+    full: `${datePart} ${timePart}`,
+    date: datePart,
+    time: timePart,
+  };
+}
+
+export const getToday = () => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date());
+};

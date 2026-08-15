@@ -23,11 +23,15 @@ import { useI18n } from "@/context/I18nContext";
 import Image from "next/image";
 import AdminPagination from "@/components/custom/AdminPagination";
 import { usePagination } from "@/hooks/usePagination";
+import { getToday } from "@/lib/utils";
 
 const STATUS_OPTIONS = [
   { label: "Tất cả", value: "" },
-  { label: "Đang hoạt động", value: "true" },
-  { label: "Không hoạt động", value: "false" },
+  { label: "Còn hàng", value: "available" },
+  { label: "Không còn hàng", value: "out_of_stock" },
+  { label: "Ít hàng", value: "low_stock" },
+  { label: "Chờ bắt đầu", value: "draft" },
+  { label: "Đã đóng", value: "closed" },
 ];
 
 const SORT_BY_OPTIONS = [
@@ -51,14 +55,14 @@ const LIMIT_OPTIONS = [
 ];
 
 interface FilterState {
-  is_active: boolean | undefined;
+  status: string;
   sort_by: "name" | "created_at";
   order: "asc" | "desc";
   limit: number;
 }
 
 const DEFAULT_FILTER: FilterState = {
-  is_active: undefined,
+  status: "",
   sort_by: "created_at",
   order: "desc",
   limit: DEFAULT_LIMIT,
@@ -66,6 +70,7 @@ const DEFAULT_FILTER: FilterState = {
 
 export default function AdminStoreInventoryPage() {
   const [stores, setStoreInventories] = useState<StoreInventoryRaw[]>([]);
+  const [selectedDate, setSelectedDate] = useState(getToday());
   const [isLoading, setIsLoading] = useState(false);
   const [appliedFilter, setAppliedFilter] =
     useState<FilterState>(DEFAULT_FILTER);
@@ -106,31 +111,37 @@ export default function AdminStoreInventoryPage() {
   const fetchStoreInventory = useCallback(
     async (
       storeId: string,
+      date: string,
       filter: FilterState = appliedFilter,
       pageNum: number = page,
     ) => {
-      if (!storeId) return;
+      if (!storeId || !date) return;
 
       try {
         setIsLoading(true);
 
-        // get param
         const params = new URLSearchParams();
+
         params.set("store_id", storeId);
-        if (filter.is_active !== undefined) {
-          params.set("is_active", String(filter.is_active));
+        params.set("date", date);
+
+        if (filter.status) {
+          params.set("status", filter.status);
         }
+
         params.set("page", String(pageNum));
         params.set("limit", String(filter.limit));
 
-        // call api
         const res = await fetch(
           `/api/admin/store-inventories?${params.toString()}`,
         );
-        if (!res.ok) throw new Error("Failed to fetch store inventories");
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch store inventories");
+        }
+
         const data = await res.json();
 
-        // check
         if (data.success && data.data) {
           setStoreInventories(data.data);
           setPagination(data.pagination ?? null);
@@ -147,8 +158,8 @@ export default function AdminStoreInventoryPage() {
   // only fetch inventory once a store_id is available; refetch when it changes
   useEffect(() => {
     if (!selectedStoreId) return;
-    fetchStoreInventory(selectedStoreId);
-  }, [selectedStoreId, fetchStoreInventory]);
+    fetchStoreInventory(selectedStoreId, selectedDate);
+  }, [selectedStoreId, selectedDate, fetchStoreInventory]);
 
   // reset to page 1 whenever the selected store changes
   useEffect(() => {
@@ -160,7 +171,7 @@ export default function AdminStoreInventoryPage() {
   const handleApply = () => {
     setAppliedFilter(tempFilter);
     resetPage();
-    fetchStoreInventory(selectedStoreId, tempFilter, 1);
+    fetchStoreInventory(selectedStoreId, selectedDate, tempFilter, 1);
   };
 
   // clear filter
@@ -168,18 +179,18 @@ export default function AdminStoreInventoryPage() {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
     resetPage();
-    fetchStoreInventory(selectedStoreId, DEFAULT_FILTER, 1);
+    fetchStoreInventory(selectedStoreId, selectedDate, DEFAULT_FILTER, 1);
   };
 
   //check filter
   const isFilterActive =
-    appliedFilter.is_active !== undefined ||
+    appliedFilter.status !== "" ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order ||
     appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
-    (appliedFilter.is_active !== undefined ? 1 : 0) +
+    (appliedFilter.status !== "" ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
@@ -227,20 +238,16 @@ export default function AdminStoreInventoryPage() {
                     <p className="text-sm font-medium leading-none">
                       Trạng thái
                     </p>
+
                     <select
                       className="border rounded-md h-9 px-2 w-full text-sm"
-                      value={
-                        tempFilter.is_active === undefined
-                          ? ""
-                          : String(tempFilter.is_active)
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value;
+                      value={tempFilter.status}
+                      onChange={(e) =>
                         setTempFilter((prev) => ({
                           ...prev,
-                          is_active: v === "" ? undefined : v === "true",
-                        }));
-                      }}
+                          status: e.target.value,
+                        }))
+                      }
                     >
                       {STATUS_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -326,6 +333,7 @@ export default function AdminStoreInventoryPage() {
               </PopoverContent>
             </Popover>
 
+            {/** Store select */}
             <select
               className="border rounded-md h-9 px-2 w-48 text-sm bg-card"
               value={selectedStoreId}
@@ -348,6 +356,17 @@ export default function AdminStoreInventoryPage() {
                 ))
               )}
             </select>
+
+            {/* Date filter */}
+            <input
+              type="date"
+              className="border rounded-md h-9 px-2 w-40 text-sm bg-card"
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                resetPage();
+              }}
+            />
 
             {isFilterActive && (
               <button
@@ -397,7 +416,7 @@ export default function AdminStoreInventoryPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={9}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -406,7 +425,7 @@ export default function AdminStoreInventoryPage() {
             ) : stores.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={9}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-3">

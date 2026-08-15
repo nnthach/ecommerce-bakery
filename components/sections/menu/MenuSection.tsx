@@ -30,6 +30,7 @@ export default function MenuSection() {
   const [products, setProducts] = useState<FetchedProduct[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCity, setSelectedCity] = useState("Thành phố Hồ Chí Minh");
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -45,7 +46,7 @@ export default function MenuSection() {
   }, []);
 
   const fetchProducts = useCallback(
-    async (categoryId: string, pageNum: number) => {
+    async (categoryId: string, pageNum: number, city: string) => {
       try {
         setIsLoading(true);
         const params = new URLSearchParams({
@@ -55,7 +56,7 @@ export default function MenuSection() {
           limit: String(PRODUCTS_PER_PAGE),
           page: String(pageNum),
           locale,
-          city: "Hồ Chí Minh",
+          city,
         });
         if (categoryId !== "all") {
           params.set("category_id", categoryId);
@@ -81,8 +82,8 @@ export default function MenuSection() {
   }, [fetchCategories]);
 
   useEffect(() => {
-    fetchProducts(activeCategory, page);
-  }, [fetchProducts, activeCategory, page]);
+    fetchProducts(activeCategory, page, selectedCity);
+  }, [fetchProducts, activeCategory, page, selectedCity]);
 
   const handleSelectCategory = (id: string) => {
     setActiveCategory(id);
@@ -156,6 +157,20 @@ export default function MenuSection() {
               {category.name[locale as "en" | "vi"] ?? category.name.vi}
             </button>
           ))}
+
+          {/* City */}
+          <select
+            value={selectedCity}
+            onChange={(e) => {
+              setSelectedCity(e.target.value);
+              resetPage();
+            }}
+            className="rounded-full border border-charcoal/15 bg-white px-5 py-2 text-sm font-semibold text-charcoal outline-none transition focus:border-amber"
+          >
+            <option value="Thành phố Hồ Chí Minh">Thành phố Hồ Chí Minh</option>
+            <option value="Hà Nội">Hà Nội</option>
+            <option value="Đà Nẵng">Đà Nẵng</option>
+          </select>
         </div>
 
         {/* Product grid */}

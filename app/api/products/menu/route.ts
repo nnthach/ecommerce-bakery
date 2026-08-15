@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       .from("stores")
       .select("id")
       .eq("type", "online")
-      .eq("city", city ?? "Hồ Chí Minh")
+      .eq("city", city ?? "Thành phố Hồ Chí Minh")
       .single();
 
     if (storeError || !store) {

@@ -793,13 +793,13 @@ export const translations = {
           payment: {
             unpaid: "Unpaid",
             paid: "Paid",
-            failed: "Payment failed",
+            failed: "Failed",
             refunded: "Refunded",
           },
         },
         searchPlaceholder: "Search by customer or order code...",
         showing: "Showing",
-        staff: "order",
+        order: "order",
         table: {
           columns: {
             customer: "Customer",
