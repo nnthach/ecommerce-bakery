@@ -112,7 +112,9 @@ export default function UpdateProductModal({
           fetch(
             "/api/admin/categories?is_active=true&sort_by=name&order=asc&limit=100",
           ),
-          fetch("/api/admin/ingredients?is_active=true&sort_by=name&order=asc"),
+          fetch(
+            "/api/admin/ingredients?is_active=true&sort_by=name&order=asc&limit=100",
+          ),
           fetch(`/api/admin/products/${product.id}?locale=vi`),
           fetch(`/api/admin/products/${product.id}?locale=en`),
         ]);
@@ -205,8 +207,9 @@ export default function UpdateProductModal({
     try {
       let imageUrls: string[] = [];
       if (imageFile) {
-        const uploaded = await uploadFileToCloudinary(imageFile);
-        imageUrls = [uploaded];
+        const result = await uploadFileToCloudinary(imageFile);
+
+        imageUrls = Array.isArray(result) ? result : [result];
       } else if (existingImageUrl) {
         imageUrls = [existingImageUrl];
       }
@@ -227,14 +230,18 @@ export default function UpdateProductModal({
       if (!res.ok) throw new Error("Failed to update product");
 
       toast.success(
-        locale === "vi" ? "Cập nhật sản phẩm thành công!" : "Product updated successfully!",
+        locale === "vi"
+          ? "Cập nhật sản phẩm thành công!"
+          : "Product updated successfully!",
       );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
       toast.error(
-        locale === "vi" ? "Không thể cập nhật sản phẩm." : "Failed to update product.",
+        locale === "vi"
+          ? "Không thể cập nhật sản phẩm."
+          : "Failed to update product.",
       );
     }
   };

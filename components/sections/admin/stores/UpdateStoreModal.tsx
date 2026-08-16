@@ -116,8 +116,15 @@ export default function UpdateStoreModal({
   const onSubmit = async (data: StoreFormData) => {
     try {
       let imageUrl = "";
+
       if (imageFile) {
-        imageUrl = await uploadFileToCloudinary(imageFile);
+        const result = await uploadFileToCloudinary(imageFile);
+
+        if (Array.isArray(result)) {
+          imageUrl = result[0] ?? "";
+        } else {
+          imageUrl = result;
+        }
       } else if (existingImageUrl) {
         imageUrl = existingImageUrl;
       }
@@ -137,14 +144,18 @@ export default function UpdateStoreModal({
       if (!res.ok) throw new Error("Failed to update store");
 
       toast.success(
-        locale === "vi" ? "Cập nhật cửa hàng thành công!" : "Store updated successfully!",
+        locale === "vi"
+          ? "Cập nhật cửa hàng thành công!"
+          : "Store updated successfully!",
       );
       setOpen(false);
       onUpdated?.();
     } catch (error) {
       console.error(error);
       toast.error(
-        locale === "vi" ? "Không thể cập nhật cửa hàng." : "Failed to update store.",
+        locale === "vi"
+          ? "Không thể cập nhật cửa hàng."
+          : "Failed to update store.",
       );
     }
   };

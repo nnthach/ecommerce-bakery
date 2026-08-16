@@ -109,7 +109,7 @@ export default function CreateProductModal({
           fetch(
             "/api/admin/categories?is_active=true&sort_by=name&order=asc&limit=100",
           ),
-          fetch("/api/admin/ingredients?is_active=true&sort_by=name&order=asc"),
+          fetch("/api/admin/ingredients?is_active=true&sort_by=name&order=asc&limit=100"),
         ]);
         const catJson = await catRes.json();
         const ingJson = await ingRes.json();
@@ -172,8 +172,9 @@ export default function CreateProductModal({
       let imageUrls: string[] = [];
 
       if (imageFile) {
-        const imageUrl = await uploadFileToCloudinary(imageFile);
-        imageUrls = [imageUrl];
+        const result = await uploadFileToCloudinary(imageFile);
+
+        imageUrls = Array.isArray(result) ? result : [result];
       }
 
       // payload
@@ -191,7 +192,9 @@ export default function CreateProductModal({
       });
       if (!res.ok) throw new Error("Failed to create product");
       toast.success(
-        locale === "vi" ? "Tạo sản phẩm thành công!" : "Product created successfully!",
+        locale === "vi"
+          ? "Tạo sản phẩm thành công!"
+          : "Product created successfully!",
       );
       resetForm();
       setOpen(false);
@@ -199,7 +202,9 @@ export default function CreateProductModal({
     } catch (error) {
       console.error(error);
       toast.error(
-        locale === "vi" ? "Không thể tạo sản phẩm." : "Failed to create product.",
+        locale === "vi"
+          ? "Không thể tạo sản phẩm."
+          : "Failed to create product.",
       );
     }
   };

@@ -126,7 +126,7 @@ export interface ProductItem {
   category: CategoryItem;
   categories: CategoryItem;
   product_translations: ProductTranslation[];
-  product_ingredients: IngredientItem[];
+  product_ingredients: ProductIngredientRow[];
   ingredients: IngredientItem[];
   is_active: boolean;
   created_at: string;
@@ -136,6 +136,12 @@ export interface ProductItem {
 
 export interface ProductDetailPage extends ProductItem {
   stores: ProductStoreInventory[];
+}
+
+export interface ProductSearchVectorItem {
+  product_id: string;
+  content: string;
+  similarity: number;
 }
 
 export type StoreTypeEnum = "online" | "offline";

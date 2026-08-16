@@ -92,8 +92,15 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
     try {
       // upload image
       let imageUrl = "";
+
       if (imageFile) {
-        imageUrl = await uploadFileToCloudinary(imageFile);
+        const result = await uploadFileToCloudinary(imageFile);
+
+        if (Array.isArray(result)) {
+          imageUrl = result[0] ?? "";
+        } else {
+          imageUrl = result;
+        }
       }
 
       // payload
@@ -110,7 +117,9 @@ export default function CreateStoreModal({ onCreated }: CreateStoreModalProps) {
       });
       if (!res.ok) throw new Error("Failed to create store");
       toast.success(
-        locale === "vi" ? "Tạo cửa hàng thành công!" : "Store created successfully!",
+        locale === "vi"
+          ? "Tạo cửa hàng thành công!"
+          : "Store created successfully!",
       );
       resetForm();
       setOpen(false);

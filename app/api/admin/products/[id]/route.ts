@@ -1,3 +1,5 @@
+import { createEmbedding } from "@/lib/cohere";
+import { buildProductEmbeddingContent } from "@/lib/embedding/product-content";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import { ProductIngredientRow, RawProduct } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
@@ -69,7 +71,10 @@ export async function GET(
       ),
     };
 
-    return NextResponse.json({ success: true, data: formatted }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: formatted },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Get product detail error:", error);
     return NextResponse.json(
@@ -186,7 +191,31 @@ export async function PUT(
       .single();
     if (fetchError) throw fetchError;
 
-    return NextResponse.json({ success: true, data: fullProduct }, { status: 200 });
+    // Step 5: Embedding
+    const content = buildProductEmbeddingContent(fullProduct);
+
+    const embedding = await createEmbedding(content);
+    const { error: embeddingError } = await supabaseAdmin
+      .from("product_embeddings")
+      .upsert(
+        {
+          product_id: id,
+          content,
+          embedding,
+        },
+        {
+          onConflict: "product_id",
+        },
+      );
+
+    if (embeddingError) {
+      console.error("Create product embedding error:", embeddingError);
+    }
+
+    return NextResponse.json(
+      { success: true, data: fullProduct },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Update products error:", error);
     return NextResponse.json(
