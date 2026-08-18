@@ -3,15 +3,18 @@ import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import {
   createQueryEmbedding,
   detectIntent,
+  detectLanguage,
   expandProductQuery,
   generateGeneralAnswer,
   generateProductAnswer,
   generateProductListAnswer,
   generateProductNotFoundAnswer,
+  generateStoreInfoAnswer,
+  generateStoreInfoNotFoundAnswer,
   rerankProducts,
 } from "@/lib/cohere";
 import { buildRAGContext } from "@/lib/embedding/product-content";
-import { ProductSearchVectorItem } from "@/types";
+import { KnowledgeSearchResult, ProductSearchVectorItem } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,6 +58,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Detect message
     const intent = await detectIntent(message);
+    const language = await detectLanguage(message);
 
     // 5. GENERAL
     if (intent === "GENERAL") {
@@ -261,6 +265,62 @@ export async function POST(req: NextRequest) {
           answer,
           intent,
           products,
+        },
+      });
+    }
+
+    // 8. STORE_INFO
+    if (intent === "STORE_INFO") {
+      // 8.1. Create query embedding
+      const queryEmbedding = await createQueryEmbedding(message);
+
+      if (!queryEmbedding) {
+        throw new Error("Failed to create query embedding");
+      }
+
+      // 8.2. Vector search knowledge chunks
+      const { data: matches, error: vectorSearchError } =
+        await supabaseAdmin.rpc("match_knowledge_chunks", {
+          query_embedding: queryEmbedding,
+          match_count: 10,
+        });
+
+      if (vectorSearchError) {
+        throw vectorSearchError;
+      }
+
+      // 8.3. No relevant knowledge
+      if (!matches || matches.length === 0) {
+        const answer = await generateStoreInfoNotFoundAnswer(message);
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            answer,
+            intent,
+            products: [],
+          },
+        });
+      }
+
+      // 8.4. Build RAG context
+      const context = matches
+        .map(
+          (item: KnowledgeSearchResult, index: number) =>
+            `[Context ${index + 1}]\n${item.content}`,
+        )
+        .join("\n\n");
+
+      // 8.5. Generate answer
+      const answer = await generateStoreInfoAnswer(message, context, language);
+
+      // 8.6. Response
+      return NextResponse.json({
+        success: true,
+        data: {
+          answer,
+          intent,
+          products: [],
         },
       });
     }

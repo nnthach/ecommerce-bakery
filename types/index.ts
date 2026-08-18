@@ -297,3 +297,12 @@ export interface PayOSWebhookBody {
   };
   signature: string;
 }
+
+export interface KnowledgeSearchResult {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  similarity: number;
+}

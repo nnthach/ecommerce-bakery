@@ -441,7 +441,7 @@ bánh xoài, mango, xoài
 }
 
 // chat detect intent request
-type ChatIntent = "PRODUCT_SEARCH" | "PRODUCT_LIST" | "GENERAL";
+type ChatIntent = "PRODUCT_SEARCH" | "PRODUCT_LIST" | "GENERAL" | "STORE_INFO";
 export async function detectIntent(message: string): Promise<ChatIntent> {
   const response = await cohere.chat({
     model: "command-a-03-2025",
@@ -450,39 +450,157 @@ export async function detectIntent(message: string): Promise<ChatIntent> {
       {
         role: "system",
         content: `
-          You are an intent classifier for a bakery AI assistant.
+You are an intent classifier for a bakery AI assistant.
 
-          Classify the user's message into exactly one of:
+Classify the user's message into EXACTLY ONE of:
 
-          PRODUCT_SEARCH:
-          The user wants to find a specific product based on
-          name, flavor, ingredient, category, characteristic, etc.
+PRODUCT_SEARCH
+PRODUCT_LIST
+STORE_INFO
+GENERAL
 
-          Examples:
-          - "Bạn có bánh matcha không?"
-          - "Có bánh chocolate không?"
-          - "Bánh nào có dâu?"
-          - "Tôi muốn tìm bánh ít ngọt"
+========================
+PRODUCT_SEARCH
+========================
 
-          PRODUCT_LIST:
-          The user wants to know what products the bakery currently sells
-          or wants to see the available menu/catalog.
+Use PRODUCT_SEARCH ONLY when the user wants to FIND a specific
+bakery product or products based on product-related attributes.
 
-          Examples:
-          - "Bạn bán bánh gì?"
-          - "Hôm nay có bánh gì?"
-          - "Menu hôm nay có gì?"
-          - "Shop có những loại bánh nào?"
-          - "Cho tôi xem các loại bánh"
+Examples:
+- "Bạn có bánh matcha không?"
+- "Có bánh chocolate không?"
+- "Bánh nào có dâu?"
+- "Tôi muốn tìm bánh ít ngọt"
+- "Có bánh không trứng không?"
+- "Có bánh tiramisu không?"
+- "Tìm bánh vị matcha cho tôi"
 
-          GENERAL:
-          Questions unrelated to searching/listing products.
+The user must be asking WHICH PRODUCT, WHAT PRODUCT,
+or WHETHER A SPECIFIC PRODUCT EXISTS.
 
-          Examples:
-          - "Xin chào"
-          - "Bạn là ai?"
-          - "Cửa hàng mở cửa lúc mấy giờ?"
-        `,
+IMPORTANT:
+The presence of words such as "bánh", "cake", "sản phẩm",
+"product" does NOT automatically mean PRODUCT_SEARCH.
+
+For example:
+- "Mấy giờ tôi có thể đặt bánh online?" → STORE_INFO
+- "Shop có giao bánh không?" → STORE_INFO
+- "Phí giao bánh bao nhiêu?" → STORE_INFO
+- "Đặt bánh như thế nào?" → STORE_INFO
+- "Tôi có thể đặt bánh lúc 9 giờ không?" → STORE_INFO
+
+
+========================
+PRODUCT_LIST
+========================
+
+Use PRODUCT_LIST when the user wants to see the bakery's
+available products, menu, or catalog.
+
+Examples:
+- "Bạn bán bánh gì?"
+- "Hôm nay có bánh gì?"
+- "Menu hôm nay có gì?"
+- "Shop có những loại bánh nào?"
+- "Cho tôi xem các loại bánh"
+- "Có những sản phẩm nào?"
+
+IMPORTANT:
+PRODUCT_LIST is about seeing the available catalog,
+not about store policies or ordering information.
+
+
+========================
+STORE_INFO
+========================
+
+Use STORE_INFO when the user asks about information,
+policies, services, or operations of the bakery.
+
+This includes:
+
+- Opening hours
+- Online ordering time
+- Delivery
+- Delivery areas
+- Delivery fees
+- Delivery time
+- Store location
+- Address
+- Contact information
+- Payment methods
+- Return policy
+- Exchange policy
+- Cancellation policy
+- About the bakery
+- General store information
+- How to place an order
+
+Examples:
+- "Cửa hàng mở cửa lúc mấy giờ?"
+- "Mấy giờ tôi có thể đặt bánh online?"
+- "Tôi có thể đặt bánh lúc 9 giờ không?"
+- "Shop có giao hàng không?"
+- "Shop giao bánh ở đâu?"
+- "Phí giao hàng bao nhiêu?"
+- "Đặt bánh như thế nào?"
+- "Shop ở đâu?"
+- "Địa chỉ cửa hàng là gì?"
+- "Shop có thanh toán online không?"
+- "Chính sách đổi trả thế nào?"
+- "Thời gian giao hàng bao lâu?"
+
+IMPORTANT:
+If the user mentions a bakery product but the MAIN INTENT
+is about ordering, delivery, payment, opening hours, policies,
+or other store operations, classify as STORE_INFO.
+
+The meaning of the question is more important than individual keywords.
+
+
+========================
+GENERAL
+========================
+
+Use GENERAL for casual conversation or questions unrelated
+to products and bakery store information.
+
+Examples:
+- "Xin chào"
+- "Bạn là ai?"
+- "Cảm ơn bạn"
+- "Bạn có thể giúp tôi không?"
+
+
+========================
+CLASSIFICATION PRIORITY
+========================
+
+When multiple intents seem possible, follow this priority:
+
+1. STORE_INFO
+   if the main question is about ordering, delivery, payment,
+   opening hours, policies, location, or store operations.
+
+2. PRODUCT_SEARCH
+   if the user is trying to find a specific product,
+   flavor, ingredient, category, or product characteristic.
+
+3. PRODUCT_LIST
+   if the user wants to see the available menu/catalog.
+
+4. GENERAL
+
+IMPORTANT FINAL RULES:
+
+- Classify based on the user's MAIN INTENT, not keywords.
+- The word "bánh" alone does NOT imply PRODUCT_SEARCH.
+- "đặt bánh", "giao bánh", "phí bánh", "thời gian đặt bánh"
+  can still be STORE_INFO.
+- Return EXACTLY ONE intent.
+- Return ONLY the intent name.
+- Do not explain your answer.
+        `.trim(),
       },
       {
         role: "user",
@@ -499,6 +617,10 @@ export async function detectIntent(message: string): Promise<ChatIntent> {
     .trim()
     .toUpperCase();
 
+  if (text?.includes("STORE_INFO")) {
+    return "STORE_INFO";
+  }
+
   if (text?.includes("PRODUCT_SEARCH")) {
     return "PRODUCT_SEARCH";
   }
@@ -508,4 +630,222 @@ export async function detectIntent(message: string): Promise<ChatIntent> {
   }
 
   return "GENERAL";
+}
+
+// embed document
+export async function createDocumentEmbedding(
+  text: string,
+): Promise<number[] | null> {
+  const response = await cohere.embed({
+    model: "embed-v4.0",
+    texts: [text],
+    inputType: "search_document",
+    embeddingTypes: ["float"],
+  });
+
+  return response.embeddings.float?.[0] ?? null;
+}
+
+// response document
+export async function generateStoreInfoAnswer(
+  query: string,
+  context: string,
+  language: "vi" | "en",
+): Promise<string> {
+  const systemPrompt =
+    language === "en"
+      ? `
+You are a bakery customer support assistant.
+
+The user speaks English.
+
+Answer ONLY in English.
+
+Use the provided knowledge as the only source of truth.
+You may translate Vietnamese knowledge into English.
+
+Never invent information.
+
+If the knowledge does not contain the requested information,
+say that the information is currently unavailable.
+
+Keep the answer concise and natural.
+
+Do not mention RAG, embeddings, vector search, reranking,
+chunks, database, backend, or API.
+      `.trim()
+      : `
+You are a bakery customer support assistant.
+
+The user speaks Vietnamese.
+
+Answer ONLY in Vietnamese.
+
+Use the provided knowledge as the only source of truth.
+
+Never invent information.
+
+If the knowledge does not contain the requested information,
+say that the information is currently unavailable.
+
+Keep the answer concise and natural.
+
+Do not mention RAG, embeddings, vector search, reranking,
+chunks, database, backend, or API.
+      `.trim();
+
+  const userPrompt = `
+User question:
+${query}
+
+Relevant knowledge:
+${context}
+
+Answer the user's question using the relevant knowledge above.
+  `.trim();
+
+  const response = await cohere.chat({
+    model: "command-a-plus-05-2026",
+    temperature: 0.1,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userPrompt,
+      },
+    ],
+  });
+
+  const content = response.message?.content;
+
+  if (!content) {
+    return language === "en"
+      ? "Sorry, I couldn't find the information you need."
+      : "Xin lỗi, tôi không tìm thấy thông tin bạn cần.";
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => ("text" in item ? item.text : ""))
+      .join("")
+      .trim();
+  }
+
+  return String(content).trim();
+}
+
+// response not found document
+export async function generateStoreInfoNotFoundAnswer(
+  query: string,
+): Promise<string> {
+  const response = await cohere.chat({
+    model: "command-a-03-2025",
+    temperature: 0.3,
+    messages: [
+      {
+        role: "system",
+        content: `
+You are a helpful AI assistant for a bakery website.
+
+The store information search system could not find relevant information
+to answer the user's question.
+
+Rules:
+
+1. ALWAYS respond in the SAME LANGUAGE as the user's query.
+2. If the user asks in English, answer ONLY in English.
+3. If the user asks in Vietnamese, answer ONLY in Vietnamese.
+4. Clearly explain that the requested store information is currently unavailable.
+5. Do not invent any store information.
+6. Do not invent opening hours.
+7. Do not invent addresses.
+8. Do not invent delivery areas.
+9. Do not invent delivery fees.
+10. Do not invent policies.
+11. Do not invent payment methods.
+12. Do not use general knowledge to answer the question.
+13. Keep the response short, polite, and natural.
+14. Do not mention vector search, embeddings, reranking, RAG,
+    databases, APIs, chunks, or backend implementation.
+15. You may suggest that the user ask another store-related question,
+    but do not invent specific information.
+
+Return ONLY the final answer.
+        `.trim(),
+      },
+      {
+        role: "user",
+        content: query,
+      },
+    ],
+  });
+
+  const content = response.message?.content;
+
+  if (!content) {
+    return "Sorry, I couldn't find the requested store information.";
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => ("text" in item ? item.text : ""))
+      .join("")
+      .trim();
+  }
+
+  return String(content).trim();
+}
+
+// detect language
+type ChatLanguage = "vi" | "en";
+export async function detectLanguage(message: string): Promise<ChatLanguage> {
+  const response = await cohere.chat({
+    model: "command-a-03-2025",
+    temperature: 0,
+    messages: [
+      {
+        role: "system",
+        content: `
+Classify the language of the user's message.
+
+Return EXACTLY ONE of:
+
+vi
+en
+
+Rules:
+- vi = Vietnamese
+- en = English
+- If the message contains mixed Vietnamese and English,
+  classify based on the MAIN language of the sentence.
+
+Return ONLY:
+vi
+or
+en
+        `.trim(),
+      },
+      {
+        role: "user",
+        content: message,
+      },
+    ],
+  });
+
+  const content = response.message?.content;
+
+  const text = content
+    ?.map((item) => ("text" in item ? item.text : ""))
+    .join("")
+    .trim()
+    .toLowerCase();
+
+  if (text === "en") {
+    return "en";
+  }
+
+  return "vi";
 }
