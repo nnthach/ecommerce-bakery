@@ -1,7 +1,38 @@
+import { generateCacheKey, getCache, setCache } from "@/lib/redis-cache";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { getSearchParams } from "@/lib/utils";
-import { ProductIngredientRow, RawProduct } from "@/types";
+import { IngredientItem, ProductIngredientRow, RawProduct } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
+
+export interface FormattedProduct {
+  id: string;
+  price: number;
+  image_url: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string | null;
+
+  category: {
+    id: string;
+    name: string;
+  } | null;
+
+  name: string | null;
+  description: string | null;
+  slug: string | null;
+
+  ingredients: IngredientItem[];
+}
+
+interface ProductListResponse {
+  data: FormattedProduct[];
+  pagination: {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +43,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // 1. GET PARAMETERS
     const {
       is_active,
       category_id,
@@ -21,6 +53,7 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       is_daily_bake,
+      search,
     } = getSearchParams(req);
 
     const validSortBy = ["name", "created_at"].includes(sort_by)
@@ -28,12 +61,48 @@ export async function GET(req: NextRequest) {
       : "created_at";
     const ascending = order === "asc";
 
-    // parse page/limit & pagination
+    // 2. Parse page/limit & pagination
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
     const from = (pageNum - 1) * limitNum;
     const to = from + limitNum - 1;
 
+    // 3. Generate redis cache key
+    const cacheKey = generateCacheKey(
+      "products",
+      search,
+      limitNum,
+      pageNum,
+      validSortBy,
+      ascending ? "asc" : "desc",
+      locale,
+      is_active === "true" ? true : is_active === "false" ? false : null,
+      is_daily_bake === "true"
+        ? true
+        : is_daily_bake === "false"
+          ? false
+          : null,
+      category_id || null,
+      null,
+      null,
+    );
+
+    console.log("cache key product", cacheKey);
+
+    // 4. GET redis cache
+    const cached = await getCache<ProductListResponse>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json(
+        {
+          success: true,
+          ...cached,
+        },
+        { status: 200 },
+      );
+    }
+
+    // 5. CREATE Query database
     let query = supabase
       .from("products")
       .select(
@@ -63,10 +132,11 @@ export async function GET(req: NextRequest) {
       query = query.eq("category_id", category_id);
     }
 
+    // 6. RUN QUERY
     const { data, error, count } = await query;
     if (error) throw error;
 
-    // product format
+    // 7. Product format
     const formatted = data.map((product: RawProduct) => {
       const translation = product.product_translations?.[0] ?? {};
 
@@ -87,19 +157,27 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // total page
+    // 8. Total page
     const totalPages = count ? Math.ceil(count / limitNum) : 0;
 
+    const responseData: ProductListResponse = {
+      data: formatted,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total_items: count ?? 0,
+        total_pages: totalPages,
+      },
+    };
+
+    // 9. SET CACHE REDIS
+    void setCache(cacheKey, responseData, 5 * 60 * 60);
+
+    // 10. RESPONSE
     return NextResponse.json(
       {
         success: true,
-        data: formatted,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total_items: count ?? 0,
-          total_pages: totalPages,
-        },
+        ...responseData,
       },
       { status: 200 },
     );

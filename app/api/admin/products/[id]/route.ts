@@ -1,5 +1,6 @@
 import { createEmbedding } from "@/lib/cohere";
 import { buildProductEmbeddingContent } from "@/lib/embedding/product-content";
+import { deleteCacheByResource } from "@/lib/redis-cache";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import { ProductIngredientRow, RawProduct } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
@@ -212,6 +213,10 @@ export async function PUT(
       console.error("Create product embedding error:", embeddingError);
     }
 
+    // Step 6: Delete cache
+    void deleteCacheByResource("products");
+    void deleteCacheByResource("products-menu");
+
     return NextResponse.json(
       { success: true, data: fullProduct },
       { status: 200 },
@@ -259,6 +264,10 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    // delete cache
+    void deleteCacheByResource("products");
+    void deleteCacheByResource("products-menu");
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

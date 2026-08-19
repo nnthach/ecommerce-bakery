@@ -1,3 +1,4 @@
+import { generateCacheKey, getCache, setCache } from "@/lib/redis-cache";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import { getSearchParams } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,12 +19,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // 1. GET PARAMETERS
     const { is_active, category_id, order, locale, page, limit, city } =
       getSearchParams(req);
 
     const ascending = order === "asc";
 
-    // parse page/limit & pagination
+    // 2. parse page/limit & pagination
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
     const from = (pageNum - 1) * limitNum;
@@ -33,7 +35,40 @@ export async function GET(req: NextRequest) {
       timeZone: "Asia/Ho_Chi_Minh",
     }).format(new Date());
 
-    // query store by city
+    // 3. generate cache key
+    const cacheKey = generateCacheKey(
+      "products",
+      "",
+      limitNum,
+      pageNum,
+      "created_at",
+      ascending ? "asc" : "desc",
+      locale,
+      is_active === "true" ? true : is_active === "false" ? false : null,
+      null,
+      category_id || null,
+      city || "Thành phố Hồ Chí Minh",
+      businessDate,
+    );
+
+    // 4. GET CACHE
+    const cached = await getCache(cacheKey);
+
+    if (cached) {
+      console.log(`[Redis] HIT - ${cacheKey}`);
+
+      return NextResponse.json(
+        {
+          success: true,
+          ...cached,
+        },
+        { status: 200 },
+      );
+    }
+
+    console.log(`[Redis] MISS - ${cacheKey}`);
+
+    // 5. query store by city
     const { data: store, error: storeError } = await supabaseAdmin
       .from("stores")
       .select("id")
@@ -53,7 +88,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // query product
+    // 6. query product
     let productQuery = supabaseAdmin
       .from("products")
       .select(
@@ -96,7 +131,7 @@ export async function GET(req: NextRequest) {
 
     if (productError) throw productError;
 
-    // query today inventory
+    // 7. query today inventory
     const { data: inventories, error: inventoryError } = await supabaseAdmin
       .from("daily_inventories")
       .select(
@@ -112,11 +147,12 @@ export async function GET(req: NextRequest) {
 
     if (inventoryError) throw inventoryError;
 
-    // map inventory to product
+    // 8. map inventory to product
     const inventoryMap = new Map<string, DailyInventoryRow>(
       (inventories ?? []).map((item) => [item.product_id, item]),
     );
-    // product format
+
+    // 9. product format
     const formatted = (products ?? []).map((product) => {
       const translation = product.product_translations[0];
 
@@ -153,19 +189,29 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // total page
+    // 10. total page
     const totalPages = count ? Math.ceil(count / limitNum) : 0;
 
+    const responseData = {
+      data: formatted,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total_items: count ?? 0,
+        total_pages: totalPages,
+      },
+    };
+
+    // 11. SET CACHE
+    await setCache(cacheKey, responseData, 5 * 60 * 60);
+
+    console.log(`[Redis] SET - ${cacheKey}`);
+
+    // 12. RESPONSE
     return NextResponse.json(
       {
         success: true,
-        data: formatted,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total_items: count ?? 0,
-          total_pages: totalPages,
-        },
+        ...responseData,
       },
       { status: 200 },
     );

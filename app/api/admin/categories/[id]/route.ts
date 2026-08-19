@@ -1,3 +1,4 @@
+import { deleteCacheByResource } from "@/lib/redis-cache";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -56,6 +57,9 @@ export async function PUT(
       );
     }
 
+    // delete redis cache
+    void deleteCacheByResource("categories");
+
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (error) {
     console.error("Update categories error:", error);
@@ -100,6 +104,9 @@ export async function DELETE(
         { status: 404 },
       );
     }
+
+    // delete redis cache
+    void deleteCacheByResource("categories");
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

@@ -15,9 +15,40 @@ import {
 } from "@/lib/cohere";
 import { buildRAGContext } from "@/lib/embedding/product-content";
 import { KnowledgeSearchResult, ProductSearchVectorItem } from "@/types";
+import { createRateLimit } from "@/lib/ratelimit";
+
+const ratelimit = createRateLimit(10, "60 s");
 
 export async function POST(req: NextRequest) {
   try {
+    // 0. Rate limit
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
+    const identifier = `chat:${ip}`;
+
+    const {
+      success,
+      limit: rateLimit,
+      remaining,
+      reset,
+    } = await ratelimit.limit(identifier);
+
+    if (!success) {
+      return Response.json(
+        {
+          success: false,
+          message: "Too many requests",
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": rateLimit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        },
+      );
+    }
+
     // 1. Check Supabase
     if (!isSupabaseConfigured) {
       return NextResponse.json(
@@ -325,6 +356,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 9. UNSAFE
     if (intent === "UNSAFE") {
       const answer = "UNSAFE";
 
