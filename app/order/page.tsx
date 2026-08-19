@@ -119,8 +119,6 @@ export default function OrderPage() {
 
       const resData = await res.json();
 
-      console.log("PayOS response:", resData);
-
       if (!res.ok) {
         throw new Error(resData.error);
       }

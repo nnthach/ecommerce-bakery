@@ -179,8 +179,6 @@ export default function CreateStoreInventoryModal({
 
       if (!res.ok) throw new Error("Failed to create store inventory");
 
-      console.log("Creating store inventory with items:", items);
-
       setRows([createEmptyRow()]);
       setErrors({});
       setOpen(false);

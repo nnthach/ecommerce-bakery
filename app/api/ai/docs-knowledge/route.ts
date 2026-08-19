@@ -93,15 +93,11 @@ export async function POST(req: NextRequest) {
     // 1. CHUNK []
     const chunks = chunkText(content);
 
-    console.log("Total chunks:", chunks.length);
-
     // 2. CREATE EMBEDDINGS
     const chunkRows = [];
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
-
-      console.log(`Embedding chunk ${i + 1}/${chunks.length}`);
 
       const embedding = await createDocumentEmbedding(chunk);
 

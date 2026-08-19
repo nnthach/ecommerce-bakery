@@ -226,8 +226,6 @@ export async function POST(req: NextRequest) {
 
       const paymentLink = await payosConfig.paymentRequests.create(paymentData);
 
-      console.log("PayOS payment link:", paymentLink);
-
       // Create payment table
       const { error: paymentError } = await supabaseAdmin
         .from("payments")

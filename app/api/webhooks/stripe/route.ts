@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     }
 
     default:
-      console.log("Unhandled event:", event.type);
+      break;
   }
 
   return NextResponse.json({

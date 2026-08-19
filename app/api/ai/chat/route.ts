@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     // Search configuration
     const candidateLimit = 20;
     const resultLimit = limit;
-    const rerankThreshold = 0.75;
+    const rerankThreshold = 0.78;
 
     // 3. Validate message
     if (!message || typeof message !== "string") {
@@ -315,6 +315,19 @@ export async function POST(req: NextRequest) {
       const answer = await generateStoreInfoAnswer(message, context, language);
 
       // 8.6. Response
+      return NextResponse.json({
+        success: true,
+        data: {
+          answer,
+          intent,
+          products: [],
+        },
+      });
+    }
+
+    if (intent === "UNSAFE") {
+      const answer = "UNSAFE";
+
       return NextResponse.json({
         success: true,
         data: {

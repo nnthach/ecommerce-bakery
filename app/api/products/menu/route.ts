@@ -52,7 +52,6 @@ export async function GET(req: NextRequest) {
         },
       );
     }
-    console.log("store", store);
 
     // query product
     let productQuery = supabaseAdmin
