@@ -136,10 +136,7 @@ export async function POST(req: NextRequest) {
       }
 
       // ko đủ quantity
-      if (
-        inventory.status !== "available" ||
-        inventory.remaining_quantity < item.quantity
-      ) {
+      if (inventory.remaining_quantity < item.quantity) {
         return NextResponse.json(
           {
             success: false,

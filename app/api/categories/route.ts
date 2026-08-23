@@ -36,8 +36,6 @@ export async function GET(req: NextRequest) {
       null,
     );
 
-    console.log("cache key product", cacheKey);
-
     // 3. GET redis cache
     const cached = await getCache(cacheKey);
 

@@ -55,8 +55,6 @@ export async function GET(req: NextRequest) {
     const cached = await getCache(cacheKey);
 
     if (cached) {
-      console.log(`[Redis] HIT - ${cacheKey}`);
-
       return NextResponse.json(
         {
           success: true,
@@ -65,8 +63,6 @@ export async function GET(req: NextRequest) {
         { status: 200 },
       );
     }
-
-    console.log(`[Redis] MISS - ${cacheKey}`);
 
     // 5. query store by city
     const { data: store, error: storeError } = await supabaseAdmin
@@ -204,8 +200,6 @@ export async function GET(req: NextRequest) {
 
     // 11. SET CACHE
     await setCache(cacheKey, responseData, 5 * 60 * 60);
-
-    console.log(`[Redis] SET - ${cacheKey}`);
 
     // 12. RESPONSE
     return NextResponse.json(
