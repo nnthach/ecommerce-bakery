@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 1. Check body req
     const body = await req.json();
     const {
       name,
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 2. Check payment method
     if (paymentMethod !== "payos" && paymentMethod !== "visa") {
       return NextResponse.json(
         { success: false, error: "Invalid payment method" },
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // check store by city
+    // 3. Check store by city
     const { data: store, error: storeError } = await supabaseAdmin
       .from("stores")
       .select("id")
@@ -77,13 +79,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // check item is available in store
+    // 4. Check item is available in store
     const productIds = items.map((item) => item.product_id);
 
+    // 5. Get business date
     const businessDate = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Ho_Chi_Minh",
     }).format(new Date());
 
+    // 6. Query inventory by business date
     const { data: inventories, error: inventoryError } = await supabaseAdmin
       .from("daily_inventories")
       .select(
@@ -110,7 +114,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // check each item
+    // 7. Check each item
     for (const item of items) {
       const inventory = inventories?.find(
         (inv) => inv.product_id === item.product_id,
@@ -154,7 +158,7 @@ export async function POST(req: NextRequest) {
 
     const orderCode = generateOrderCode();
 
-    // Create db order
+    // 8. Create db order
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -178,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     if (orderError) throw orderError;
 
-    // Create order items
+    // 9. Create order items
     const { error: orderItemsError } = await supabaseAdmin
       .from("order_items")
       .insert(
@@ -202,9 +206,9 @@ export async function POST(req: NextRequest) {
 
     if (orderItemsError) throw orderItemsError;
 
+    // 10. Start Payment
     if (paymentMethod === "payos") {
-      // create payment payos
-
+      // 10.1.1 create payment payload
       const paymentData = {
         orderCode: Number(orderCode),
         amount: total,
@@ -224,9 +228,7 @@ export async function POST(req: NextRequest) {
         returnUrl: `${appUrl}/payment`,
       };
 
-      const paymentLink = await payosConfig.paymentRequests.create(paymentData);
-
-      // Create payment table
+      // 10.1.2 Create payment table
       const { error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
@@ -236,6 +238,9 @@ export async function POST(req: NextRequest) {
         })
         .single();
       if (paymentError) throw paymentError;
+
+      // 10.1.3 Create payos link
+      const paymentLink = await payosConfig.paymentRequests.create(paymentData);
 
       return NextResponse.json(
         {
@@ -248,7 +253,7 @@ export async function POST(req: NextRequest) {
         { status: 201, headers: res.headers },
       );
     } else {
-      // Create payment stripe
+      // 10.2.1 Create payment stripe
       const paymentIntent = await stripeClient.paymentIntents.create({
         amount: total,
         currency: "vnd",
@@ -258,7 +263,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Create payment table
+      // 10.2.2 Create payment table
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
@@ -289,4 +294,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

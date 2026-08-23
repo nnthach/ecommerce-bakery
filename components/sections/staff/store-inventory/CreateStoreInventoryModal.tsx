@@ -65,7 +65,7 @@ export default function CreateStoreInventoryModal({
         setFetchProductsFailed(false);
 
         const res = await fetch(
-          `/api/admin/products?is_active=true&locale=${locale}`,
+          `/api/admin/products?is_active=true&locale=${locale}&limit=100`,
         );
         if (!res.ok) throw new Error("Failed to fetch products");
         const data = await res.json();

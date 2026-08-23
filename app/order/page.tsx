@@ -4,7 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, QrCode, ShoppingBag } from "lucide-react";
+import {
+  ChevronDown,
+  CreditCard,
+  Loader2,
+  QrCode,
+  ShoppingBag,
+} from "lucide-react";
 
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -19,20 +25,17 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useI18n } from "@/context/I18nContext";
-import { getStripe } from "@/lib/stripe/client";
-import { Elements } from "@stripe/react-stripe-js";
 import {
   createShippingSchema,
   ShippingFormData,
 } from "@/lib/validations/order";
-import CheckOutForm from "@/components/sections/order/CheckOutForm";
 import toast from "react-hot-toast";
 
 const SHIPPING_FEE = 1000;
 const FREE_SHIPPING_THRESHOLD = 300000;
 
 export default function OrderPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const { items, totalPrice } = useCart();
 
@@ -197,7 +200,7 @@ export default function OrderPage() {
                         />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 border-t border-charcoal/10 p-4">
-                        {grandTotal > 0 && (
+                        {/* {grandTotal > 0 && (
                           <Elements
                             stripe={getStripe()}
                             options={{
@@ -213,7 +216,25 @@ export default function OrderPage() {
                               createOrderPayload={createOrderPayload}
                             />
                           </Elements>
-                        )}
+                        )} */}
+                        <div className="flex flex-col items-center rounded-xl border border-dashed border-charcoal/15 bg-sand/40 px-5 py-8 text-center">
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber/10 text-amber">
+                            <CreditCard className="h-6 w-6" strokeWidth={1.8} />
+                          </span>
+                          <span className="mt-4 inline-flex rounded-full bg-amber/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber">
+                            {locale === "vi" ? "Sắp ra mắt" : "Coming soon"}
+                          </span>
+                          <h3 className="mt-3 text-sm font-semibold text-charcoal">
+                            {locale === "vi"
+                              ? "Thanh toán bằng thẻ đang được hoàn thiện"
+                              : "Card payment is being prepared"}
+                          </h3>
+                          <p className="mt-2 max-w-sm text-xs leading-relaxed text-charcoal/55">
+                            {locale === "vi"
+                              ? "Tính năng này sẽ sớm được cập nhật. Vui lòng chọn phương thức thanh toán khác."
+                              : "This feature will be available soon. Please choose another payment method for now."}
+                          </p>
+                        </div>
                       </CollapsibleContent>
                     </Collapsible>
 
@@ -242,9 +263,29 @@ export default function OrderPage() {
                         />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="border-t border-charcoal/10 p-4">
-                        <Button onClick={handleSubmit(onSubmit)}>
-                          Payment with PayOS
+                        {/* <Button onClick={handleSubmit(onSubmit)}>
+                        </Button> */}
+                        <Button
+                          type="button"
+                          variant="accent"
+                          size="lg"
+                          disabled={isSubmitting || items.length === 0}
+                          className="w-full font-semibold"
+                          onClick={handleSubmit(onSubmit)}
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : locale === "vi" ? (
+                            "Thanh toán với PayOS"
+                          ) : (
+                            "Pay with PayOS"
+                          )}
                         </Button>
+                        <p className="text-center text-xs text-charcoal/40 mt-3">
+                          {locale === "vi"
+                            ? "Bạn sẽ được chuyển hướng đến trang thanh toán QR."
+                            : "You will be redirected to the QR payment page."}
+                        </p>
                       </CollapsibleContent>
                     </Collapsible>
                   </div>

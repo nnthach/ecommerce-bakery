@@ -3,22 +3,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { payosConfig } from "@/lib/payos";
 import { PayOSWebhookBody } from "@/types";
 import { supabaseAdmin } from "@/lib/supabase";
+import { deleteCacheByResource } from "@/lib/redis-cache";
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as PayOSWebhookBody;
 
+    // 1. Verify PayOS webhook
     const webhookData = await payosConfig.webhooks.verify(body);
 
     const { code, orderCode, reference } = webhookData;
 
-    // check order
-    const { data: order } = await supabaseAdmin
+    // 2. Check order
+    const { data: order, error: orderFetchError } = await supabaseAdmin
       .from("orders")
-      .select("id,user_id,payment_status")
+      .select("id, user_id, store_id, payment_status")
       .eq("order_code", orderCode)
       .maybeSingle();
 
+    if (orderFetchError) throw orderFetchError;
+
+    // 3. Order không tồn tại
     if (!order) {
       return NextResponse.json({
         error: 0,
@@ -26,150 +31,102 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Update payment transactionid
-    const { error: paymentError } = await supabaseAdmin
-      .from("payments")
-      .update({
-        transaction_id: reference,
-      })
-      .eq("order_id", order.id);
+    // =========================================================
+    // 4. PAYMENT FAILED
+    // =========================================================
+    if (code !== "00") {
+      // Update order
+      const { error: orderError } = await supabaseAdmin
+        .from("orders")
+        .update({
+          payment_status: "failed",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", order.id)
+        .neq("payment_status", "paid");
 
-    if (paymentError) throw paymentError;
+      if (orderError) throw orderError;
 
-    // webhook bị gọi lại lần 2
-    if (order.payment_status === "paid") {
+      // Update payment
+      const { error: paymentError } = await supabaseAdmin
+        .from("payments")
+        .update({
+          status: "failed",
+          transaction_id: reference,
+          gateway_response: webhookData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("order_id", order.id);
+
+      if (paymentError) throw paymentError;
+
+      return NextResponse.json({
+        error: 0,
+        message: "Payment failed",
+      });
+    }
+
+    // =========================================================
+    // 5. PAYMENT SUCCESS
+    // =========================================================
+    const businessDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }).format(new Date());
+
+    // 5.1 Process payment + inventory inside PostgreSQL transaction
+    const { data: result, error: processError } = await supabaseAdmin.rpc(
+      "process_successful_payment",
+      {
+        p_order_id: order.id,
+        p_reference: reference,
+        p_gateway_response: webhookData,
+        p_business_date: businessDate,
+      },
+    );
+
+    if (processError) {
+      throw processError;
+    }
+
+    if (!result?.success) {
+      throw new Error("Failed to process successful payment");
+    }
+
+    if (result?.already_processed) {
       return NextResponse.json({
         error: 0,
         message: "Already processed",
       });
     }
 
-    // Chỉ xử lý khi thanh toán thành công
-    if (code === "00") {
-      // ORDERS
-      const { data: order, error: orderError } = await supabaseAdmin
-        .from("orders")
-        .update({
-          payment_status: "paid",
-          status: "confirmed",
-        })
-        .eq("order_code", orderCode)
-        .select("id, user_id, store_id")
-        .single();
+    // 5.2 Delete product cache
+    void deleteCacheByResource("products");
 
-      if (orderError || !order) {
-        throw orderError;
-      }
+    // 5.3 Clear cart
+    const { error: clearCartError } = await supabaseAdmin.rpc(
+      "clear_order_cart",
+      {
+        p_user_id: order.user_id,
+        p_order_id: order.id,
+      },
+    );
 
-      // Lấy danh sách sản phẩm trong đơn ORDER_ITEMS
-      const { data: items, error: itemsError } = await supabaseAdmin
-        .from("order_items")
-        .select(
-          `
-      product_id,
-      quantity
-    `,
-        )
-        .eq("order_id", order.id);
-
-      if (itemsError) throw itemsError;
-
-      if (!items || items.length === 0) {
-        return NextResponse.json({
-          error: 0,
-          message: "No items",
-        });
-      }
-
-      const businessDate = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      }).format(new Date());
-
-      // Trừ tồn kho DAILY_INVENTORIES
-      for (const item of items) {
-        const { data: inventory, error: inventoryError } = await supabaseAdmin
-          .from("daily_inventories")
-          .select("remaining_quantity")
-          .eq("store_id", order.store_id)
-          .eq("product_id", item.product_id)
-          .eq("business_date", businessDate)
-          .maybeSingle();
-
-        if (inventoryError) throw inventoryError;
-
-        if (!inventory) continue;
-
-        const newRemaining = Math.max(
-          0,
-          inventory.remaining_quantity - item.quantity,
-        );
-
-        let status: "available" | "low_stock" | "out_of_stock";
-
-        if (newRemaining === 0) {
-          status = "out_of_stock";
-        } else if (newRemaining <= 10) {
-          status = "low_stock";
-        } else {
-          status = "available";
-        }
-
-        const { error: updateInventoryError } = await supabaseAdmin
-          .from("daily_inventories")
-          .update({
-            remaining_quantity: newRemaining,
-            status,
-          })
-          .eq("store_id", order.store_id)
-          .eq("product_id", item.product_id)
-          .eq("business_date", businessDate);
-
-        if (updateInventoryError) throw updateInventoryError;
-      }
-
-      // Update payment
-      const { error: paymentError } = await supabaseAdmin
-        .from("payments")
-        .update({
-          status: "paid",
-        })
-        .eq("order_id", order.id);
-
-      if (paymentError) throw paymentError;
-
-      // Clear cart
-      if (order.user_id) {
-        const { data: cart, error: cartError } = await supabaseAdmin
-          .from("carts")
-          .select("id")
-          .eq("user_id", order.user_id)
-          .maybeSingle();
-
-        if (cartError) throw cartError;
-
-        if (cart) {
-          const { error: clearCartError } = await supabaseAdmin
-            .from("cart_items")
-            .delete()
-            .eq("cart_id", cart.id);
-
-          if (clearCartError) throw clearCartError;
-        }
-      }
+    if (clearCartError) {
+      throw clearCartError;
     }
 
-    // PayOS yêu cầu trả 200
+    // 6. PayOS requires HTTP 200
     return NextResponse.json({
       error: 0,
       message: "success",
     });
   } catch (error) {
-    console.error("Webhook verify failed:", error);
+    console.error("PayOS webhook error:", error);
 
     return NextResponse.json(
       {
         error: -1,
-        message: "Invalid webhook",
+        message: "Webhook processing failed",
       },
       { status: 400 },
     );
