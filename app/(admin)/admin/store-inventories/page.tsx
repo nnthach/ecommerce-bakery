@@ -165,7 +165,7 @@ export default function AdminStoreInventoryPage() {
   useEffect(() => {
     resetPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStoreId]);
+  }, [selectedStoreId, selectedDate]);
 
   // apply filter
   const handleApply = () => {

@@ -22,16 +22,32 @@ import { StoreInventoryRaw } from "@/types";
 import { useI18n } from "@/context/I18nContext";
 import Image from "next/image";
 import CreateStoreInventoryModal from "@/components/sections/staff/store-inventory/CreateStoreInventoryModal";
+import { getToday } from "@/lib/utils";
+import { usePagination } from "@/hooks/usePagination";
+import AdminPagination from "@/components/custom/AdminPagination";
 
 const STATUS_OPTIONS = [
   { label: "Tất cả", value: "" },
-  { label: "Đang hoạt động", value: "true" },
-  { label: "Không hoạt động", value: "false" },
+  { label: "Còn hàng", value: "available" },
+  { label: "Không còn hàng", value: "out_of_stock" },
+  { label: "Ít hàng", value: "low_stock" },
+  { label: "Chờ bắt đầu", value: "draft" },
+  { label: "Đã đóng", value: "closed" },
 ];
 
 const SORT_BY_OPTIONS = [
   { label: "Ngày tạo", value: "created_at" },
   { label: "Tên", value: "name" },
+];
+
+const DEFAULT_LIMIT = 8;
+
+const LIMIT_OPTIONS = [
+  { label: `${DEFAULT_LIMIT}`, value: String(DEFAULT_LIMIT) },
+  { label: "10", value: "10" },
+  { label: "15", value: "15" },
+  { label: "20", value: "20" },
+  { label: "50", value: "50" },
 ];
 
 const ORDER_OPTIONS = [
@@ -40,75 +56,112 @@ const ORDER_OPTIONS = [
 ];
 
 interface FilterState {
-  is_active: boolean | undefined;
+  status: string;
   sort_by: "name" | "created_at";
   order: "asc" | "desc";
+  limit: number;
 }
 
 const DEFAULT_FILTER: FilterState = {
-  is_active: undefined,
+  status: "",
   sort_by: "created_at",
   order: "desc",
+  limit: DEFAULT_LIMIT,
 };
 
 export default function StaffStoreInventoryPage() {
   const [stores, setStoreInventories] = useState<StoreInventoryRaw[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(getToday());
+
   const [appliedFilter, setAppliedFilter] =
     useState<FilterState>(DEFAULT_FILTER);
   const [tempFilter, setTempFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const { page, setPage, pagination, setPagination, resetPage } =
+    usePagination();
 
   const { t, locale } = useI18n();
 
-  const fetchStoreInventory = useCallback(async () => {
-    try {
-      setIsLoading(true);
+  const fetchStoreInventory = useCallback(
+    async (
+      date: string,
+      filter: FilterState = appliedFilter,
+      pageNum: number = page,
+    ) => {
+      try {
+        setIsLoading(true);
 
-      // call api - server tự xác định store_id từ session
-      const res = await fetch("/api/staff/store-inventories");
-      if (!res.ok) throw new Error("Failed to fetch store inventories");
-      const data = await res.json();
+        const params = new URLSearchParams();
 
-      // check
-      if (data.success && data.data) {
-        setStoreInventories(data.data);
+        params.set("date", date);
+        if (filter.status) {
+          params.set("status", filter.status);
+        }
+
+        params.set("page", String(pageNum));
+        params.set("limit", String(filter.limit));
+
+        // call api - server tự xác định store_id từ session
+        const res = await fetch(
+          `/api/staff/store-inventories?${params.toString()}`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch store inventories");
+        const data = await res.json();
+
+        // check
+        if (data.success && data.data) {
+          setStoreInventories(data.data);
+          setPagination(data.pagination ?? null);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [appliedFilter, page, setPagination],
+  );
 
   // only fetch inventory once a store_id is available
   useEffect(() => {
-    fetchStoreInventory();
-  }, [fetchStoreInventory]);
+    fetchStoreInventory(selectedDate);
+  }, [selectedDate, fetchStoreInventory]);
+
+  // reset to page 1 whenever the selected store changes
+  useEffect(() => {
+    resetPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
   // apply filter
   const handleApply = () => {
     setAppliedFilter(tempFilter);
+    resetPage();
+    fetchStoreInventory(selectedDate, tempFilter, 1);
   };
 
   // clear filter
   const handleClearFilter = () => {
     setAppliedFilter(DEFAULT_FILTER);
     setTempFilter(DEFAULT_FILTER);
-    fetchStoreInventory();
+    resetPage();
+    fetchStoreInventory(selectedDate, tempFilter, 1);
   };
 
   //check filter
   const isFilterActive =
-    appliedFilter.is_active !== undefined ||
+    appliedFilter.status !== "" ||
     appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
-    appliedFilter.order !== DEFAULT_FILTER.order;
+    appliedFilter.order !== DEFAULT_FILTER.order ||
+    appliedFilter.limit !== DEFAULT_FILTER.limit;
 
   const activeFilterCount =
-    (appliedFilter.is_active !== undefined ? 1 : 0) +
+    (appliedFilter.status !== "" ? 1 : 0) +
     (appliedFilter.sort_by !== DEFAULT_FILTER.sort_by ||
     appliedFilter.order !== DEFAULT_FILTER.order
       ? 1
-      : 0);
+      : 0) +
+    (appliedFilter.limit !== DEFAULT_FILTER.limit ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -151,20 +204,16 @@ export default function StaffStoreInventoryPage() {
                     <p className="text-sm font-medium leading-none">
                       Trạng thái
                     </p>
+
                     <select
                       className="border rounded-md h-9 px-2 w-full text-sm"
-                      value={
-                        tempFilter.is_active === undefined
-                          ? ""
-                          : String(tempFilter.is_active)
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value;
+                      value={tempFilter.status}
+                      onChange={(e) =>
                         setTempFilter((prev) => ({
                           ...prev,
-                          is_active: v === "" ? undefined : v === "true",
-                        }));
-                      }}
+                          status: e.target.value,
+                        }))
+                      }
                     >
                       {STATUS_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -218,6 +267,29 @@ export default function StaffStoreInventoryPage() {
                     </select>
                   </div>
 
+                  {/* Limit per page */}
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium leading-none">
+                      Số dòng mỗi trang
+                    </p>
+                    <select
+                      className="border rounded-md h-9 px-2 w-full text-sm"
+                      value={String(tempFilter.limit)}
+                      onChange={(e) =>
+                        setTempFilter((prev) => ({
+                          ...prev,
+                          limit: parseInt(e.target.value, 10),
+                        }))
+                      }
+                    >
+                      {LIMIT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <PopoverClose asChild>
                     <Button variant={"accent"} size="sm" onClick={handleApply}>
                       {t("button.apply")}
@@ -226,6 +298,17 @@ export default function StaffStoreInventoryPage() {
                 </div>
               </PopoverContent>
             </Popover>
+
+            {/* Date filter */}
+            <input
+              type="date"
+              className="border rounded-md h-9 px-2 w-40 text-sm bg-card"
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                resetPage();
+              }}
+            />
 
             {isFilterActive && (
               <button
@@ -237,7 +320,9 @@ export default function StaffStoreInventoryPage() {
             )}
           </div>
 
-          <CreateStoreInventoryModal onCreated={() => fetchStoreInventory()} />
+          <CreateStoreInventoryModal
+            onCreated={() => fetchStoreInventory(selectedDate, tempFilter, 1)}
+          />
         </div>
 
         {/* Table */}
@@ -277,7 +362,7 @@ export default function StaffStoreInventoryPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={9}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -286,7 +371,7 @@ export default function StaffStoreInventoryPage() {
             ) : stores.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={9}
                   className="py-20 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -306,7 +391,6 @@ export default function StaffStoreInventoryPage() {
                   available: "success",
                   low_stock: "warning",
                   out_of_stock: "destructive",
-                  draft: "secondary",
                 };
                 const statusKey = storeInventory.status ?? "unknown";
 
@@ -369,13 +453,21 @@ export default function StaffStoreInventoryPage() {
         </Table>
 
         {/* Footer count */}
-        <div className="border-t px-6 py-3">
+        <div className="flex items-center justify-between border-t px-6 py-3">
           <p className="text-xs text-muted-foreground">
             {t("admin.storeInventoriesPage.showing")}{" "}
+            <span className="font-medium text-foreground">{stores.length}</span>{" "}
+            {t("admin.table.pagination.of")}{" "}
             <span className="font-medium text-foreground">
-              {stores.length}
-            </span>{" "}
+              {pagination?.total_items ?? stores.length}
+            </span>
           </p>
+
+          <AdminPagination
+            page={page}
+            totalPages={pagination?.total_pages ?? 0}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </div>
