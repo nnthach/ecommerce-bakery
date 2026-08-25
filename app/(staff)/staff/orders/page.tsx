@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eye, Filter, LayoutGrid, Loader2, Search, X } from "lucide-react";
+import { Filter, LayoutGrid, Loader2, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { OrderItem } from "@/types";
 import {
@@ -30,6 +30,7 @@ import {
   formatOrderStatusColor,
 } from "@/utils/format-status";
 import { formatDateTime } from "@/lib/utils";
+import OrderDetailSheet from "@/components/sections/staff/orders/OrderDetailSheet";
 
 const DEFAULT_LIMIT = 8;
 
@@ -436,13 +437,7 @@ export default function StaffOrderPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-blue-600 hover:text-blue-600 hover:bg-blue-500/10"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
+                      <OrderDetailSheet orderId={order.id} />
                     </div>
                   </TableCell>
                 </TableRow>

@@ -5,7 +5,6 @@ import { I18nProvider } from "@/context/I18nContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
-import AIChatWidget from "@/components/custom/AIChatWidget";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -37,10 +36,7 @@ export default function RootLayout({
       >
         <I18nProvider>
           <AuthProvider>
-            <CartProvider>
-              {children}
-              <AIChatWidget />
-            </CartProvider>
+            <CartProvider>{children}</CartProvider>
           </AuthProvider>
         </I18nProvider>
         <Toaster position="top-right" reverseOrder={false} />

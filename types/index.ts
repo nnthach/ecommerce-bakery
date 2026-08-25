@@ -195,7 +195,8 @@ export type StoreInventoryItemStatusEnum =
   | "available"
   | "out_of_stock"
   | "low_stock"
-  | null;
+  | "draft"
+  | "closed";
 
 export interface CartItemProduct {
   id: string;

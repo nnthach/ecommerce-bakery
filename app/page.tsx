@@ -1,3 +1,4 @@
+import AIChatWidget from "@/components/custom/AIChatWidget";
 import ScrollToTopButton from "@/components/custom/ScrollToTopButton";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
@@ -36,6 +37,8 @@ export default function Home() {
       <Footer />
 
       <ScrollToTopButton />
+
+      <AIChatWidget />
     </div>
   );
 }

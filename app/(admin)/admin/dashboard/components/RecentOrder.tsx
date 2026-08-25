@@ -7,7 +7,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { OrderItem } from "@/types";
-import { formatOrderStatus } from "@/utils/format-status";
+import {
+  formatOrderStatus,
+  formatOrderStatusColor,
+} from "@/utils/format-status";
 import { useI18n } from "@/context/I18nContext";
 
 export default function RecentOrder() {
@@ -91,7 +94,9 @@ export default function RecentOrder() {
                   </td>
                   <td className="px-6 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium`}
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${formatOrderStatusColor(
+                        order.status,
+                      )}`}
                     >
                       {t(
                         `admin.orderPage.status.order.${formatOrderStatus(order?.status)}`,

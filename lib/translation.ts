@@ -813,6 +813,38 @@ export const translations = {
           },
         },
       },
+      orderDetailSheet: {
+        header: {
+          title: "Order #{orderCode}",
+        },
+        customer: {
+          title: "Customer information",
+          name: "Customer name",
+          phone: "Phone number",
+          store: "Store",
+          deliveryAddress: "Delivery address",
+          note: "Note",
+        },
+        items: {
+          title: "Products ({count})",
+          unit: "Unit price",
+        },
+        payment: {
+          title: "Payment",
+          transactionId: "Transaction ID",
+        },
+        date: "Created at",
+        summary: {
+          subtotal: "Subtotal",
+          shippingFee: "Shipping fee",
+          total: "Total payment",
+        },
+        state: {
+          loading: "Loading...",
+          error: "Unable to load order information",
+          empty: "No data available.",
+        },
+      },
     },
 
     // staff
@@ -1681,6 +1713,38 @@ export const translations = {
             paymentMethod: "Phương thức thanh toán",
             createdAt: "Ngày tạo",
           },
+        },
+      },
+      orderDetailSheet: {
+        header: {
+          title: "Đơn hàng #{orderCode}",
+        },
+        customer: {
+          title: "Thông tin khách hàng",
+          name: "Tên khách hàng",
+          phone: "Số điện thoại",
+          store: "Cửa hàng",
+          deliveryAddress: "Địa chỉ giao hàng",
+          note: "Ghi chú",
+        },
+        items: {
+          title: "Danh sách sản phẩm ({count})",
+          unit: "Đơn giá",
+        },
+        payment: {
+          title: "Thanh toán",
+          transactionId: "Mã giao dịch",
+        },
+        date: "Ngày tạo",
+        summary: {
+          subtotal: "Tạm tính",
+          shippingFee: "Phí giao hàng",
+          total: "Tổng thanh toán",
+        },
+        state: {
+          loading: "Đang tải...",
+          error: "Không thể tải thông tin đơn hàng",
+          empty: "Chưa có dữ liệu.",
         },
       },
     },

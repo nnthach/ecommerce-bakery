@@ -24,7 +24,7 @@ export const formatOrderStatus = (status: string): string => {
 };
 
 export const formatOrderStatusColor = (status: string): string => {
-  switch (status) {
+  switch (status.trim().toLowerCase()) {
     case "pending":
       return "bg-yellow-100 text-yellow-700 border-yellow-200";
 
