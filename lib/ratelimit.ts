@@ -1,13 +1,27 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import { redis } from "./redis";
+import Redis from "ioredis";
 
-export function createRateLimit(
-  requests: number,
-  window: Parameters<typeof Ratelimit.slidingWindow>[1],
+const redis = new Redis(process.env.AIVEN_REDIS_URI!);
+
+redis.on("error", (error) => {
+  console.error("Redis connection error:", error);
+});
+
+export async function createRateLimit(
+  identifier: string,
+  limit: number,
+  windowSeconds: number,
 ) {
-  return new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(requests, window),
-    analytics: true,
-  });
+  const key = `ratelimit:${identifier}`;
+
+  const count = await redis.incr(key);
+
+  if (count === 1) {
+    await redis.expire(key, windowSeconds);
+  }
+
+  return {
+    success: count <= limit,
+    limit,
+    remaining: Math.max(0, limit - count),
+  };
 }

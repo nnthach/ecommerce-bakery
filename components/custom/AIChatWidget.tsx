@@ -332,10 +332,14 @@ Hello! 👋 I can help you find cakes, browse the menu, or answer questions abou
             onSubmit={sendMessage}
             className="border-t border-gray-200 bg-white p-3"
           >
+            <div className="mb-1 flex justify-end">
+              <span className="text-xs text-gray-400">{input.length}/100</span>
+            </div>
             <div className="flex items-center gap-2">
               <input
                 ref={inputRef}
                 value={input}
+                maxLength={200}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}
                 placeholder={

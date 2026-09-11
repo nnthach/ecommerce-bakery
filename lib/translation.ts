@@ -182,6 +182,7 @@ export const translations = {
         available: "Available",
         low_stock: "Low Stock",
         out_of_stock: "Out of Stock",
+        pre_order: "Pre Order",
         draft: "Draft",
       },
     },
@@ -644,6 +645,7 @@ export const translations = {
         status: {
           available: "Available",
           out_of_stock: "Out of Stock",
+          pre_order: "Pre Order",
           low_stock: "Low Stock",
           draft: "Draft",
           unknown: "Unknown",
@@ -1100,6 +1102,7 @@ export const translations = {
         available: "Còn hàng",
         low_stock: "Sắp hết hàng",
         out_of_stock: "Hết hàng",
+        pre_order: "Đặt trước",
       },
     },
 
@@ -1564,6 +1567,7 @@ export const translations = {
           available: "Còn hàng",
           out_of_stock: "Hết hàng",
           low_stock: "Sắp hết hàng",
+          pre_order: "Đặt trước",
           draft: "Bản nháp",
           unknown: "Không xác định",
         },

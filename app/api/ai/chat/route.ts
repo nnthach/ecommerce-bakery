@@ -17,23 +17,15 @@ import { buildRAGContext } from "@/lib/embedding/product-content";
 import { KnowledgeSearchResult, ProductSearchVectorItem } from "@/types";
 import { createRateLimit } from "@/lib/ratelimit";
 
-const ratelimit = createRateLimit(10, "60 s");
-
 export async function POST(req: NextRequest) {
   try {
     // 0. Rate limit
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
-    const identifier = `chat:${ip}`;
 
-    const {
-      success,
-      limit: rateLimit,
-      remaining,
-      reset,
-    } = await ratelimit.limit(identifier);
+    const rateLimit = await createRateLimit(ip, 5, 60);
 
-    if (!success) {
-      return Response.json(
+    if (!rateLimit.success) {
+      return NextResponse.json(
         {
           success: false,
           message: "Too many requests",
@@ -41,9 +33,8 @@ export async function POST(req: NextRequest) {
         {
           status: 429,
           headers: {
-            "X-RateLimit-Limit": rateLimit.toString(),
-            "X-RateLimit-Remaining": remaining.toString(),
-            "X-RateLimit-Reset": reset.toString(),
+            "X-RateLimit-Limit": rateLimit.limit.toString(),
+            "X-RateLimit-Remaining": rateLimit.remaining.toString(),
           },
         },
       );
@@ -82,6 +73,16 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error: "Message is required",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (message.trim().length === 0 || message.length > 100) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Message is too long",
         },
         { status: 400 },
       );
