@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/context/I18nContext";
-import { Send } from "lucide-react";
+import { ArrowRight, Send } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -522,18 +522,17 @@ function ProductCard({ product }: { product: Product }) {
             className="
               shrink-0
               rounded-full
-              bg-black
+             
               px-3
               py-1.5
               text-xs
               font-medium
-              text-white
+              text-black
               transition
-              hover:bg-gray-800
               active:scale-95
             "
           >
-            {locale === "vi" ? "Xem bánh" : "View detail"}
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
